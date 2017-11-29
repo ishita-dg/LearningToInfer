@@ -7,24 +7,11 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 import generative
+import models
 
 torch.manual_seed(1)
 
-class MLPClassifier(nn.Module): 
-
-    def __init__(self, num_labels, input_size, nhid):
-        super(MLPClassifier, self).__init__()
-        self.fc1 = nn.Linear(input_size, nhid)
-        self.fc2 = nn.Linear(nhid, num_labels)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = F.tanh(x)
-        x = self.fc2(x)
-        x = F.log_softmax(x)
-        return x
-loss_function = nn.NLLLoss()
-N_epoch = 150    
+N_epoch = 10
     
 # Urn example
 N_blocks = 15
@@ -37,7 +24,9 @@ valN_blocks = int(N_blocks/5)
 data = {}
 data["inf_p"] = {}
 data["uninf_p"] = {}
-models = {}
+approx_models = {}
+hier_rational_models = {}
+block_rational_models = {}
 
 var_fac = 1000
 mean_fac = 0.25
@@ -49,7 +38,9 @@ for cond in data:
     data[cond]["train"] = {}
     data[cond]["val"] = {}
     data[cond]["test"] = {}
-    models[cond] = MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
+    approx_models[cond] = models.MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
+    hier_rational_models[cond] = models.hier_model()
+    block_rational_models[cond] = models.block_model()
     
     # Generate data
     
@@ -83,62 +74,19 @@ for cond in data:
     
         
     # train models
-    
-    optimizer = optim.SGD(models[cond].parameters(), lr=0.1)
-    
-    for epoch in range(N_epoch):
-        for x, y in zip(data[cond]["train"]["X"], data[cond]["train"]["y"]):
-           
-            models[cond].zero_grad()
-    
-            target = autograd.Variable(y)
-            log_probs = models[cond](autograd.Variable(x)).view(1,-1)
-    
-            loss = loss_function(log_probs, target)
-            loss.backward()
-            optimizer.step()
+    # approx
+    optimizer = optim.SGD(approx_models[cond].parameters(), lr=0.1)
+    approx_models[cond].train(data[cond], N_epoch, optimizer)
             
     
 for cond in data:
-        # validate models - will come back to this for resource rationality
-
-    err_val_prob = 0    
-    err_val = 0    
-    err_test = 0  
-    err_test_prob = 0  
     
-    print("\n*********************\n")
-    pred = []
-    for x, y in zip(data[cond]["val"]["X"], data[cond]["val"]["y"]):
-        log_probs = models[cond](autograd.Variable(x)).view(1,-1)
-        err_val_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
-        err_val += round(np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]]))
-        pred.append(np.exp(log_probs.data.numpy()[0][0]))
+    print("Condition is : ", cond)
+    print("Val")
+    approx_models[cond].test(data[cond]["val"])
+    print("Test")
+    approx_models[cond].test(data[cond]["test"])
     
-    data[cond]["val"]["y_pred"] = np.array(pred)        
-    err_val /= (N_trials*valN_blocks)
-    err_val_prob /= (N_trials*valN_blocks)
-    print("Val loss on condition {0} : \n {1}, \
-    with prob{2}".format(cond,round(100*err_val), round(100*err_val_prob)))
-    
-    
-    # test models
-    pred = []
-    for x, y in zip(data[cond]["test"]["X"], data[cond]["test"]["y"]):
-        log_probs = models[cond](autograd.Variable(x)).view(1,-1)
-        err_test_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
-        err_test += round(np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]]))
-        pred.append(np.exp(log_probs.data.numpy()[0][0]))
-        
-    data[cond]["test"]["y_pred"] = np.array(pred)
-    err_test /= (N_trials*testN_blocks)
-    err_test_prob /= (N_trials*testN_blocks)
-    print("Test loss on condition {0} : \n {1}, \
-    with prob{2}".format(cond,round(100*err_test), round(100*err_test_prob)))
-    
-        
-    print("\n*********************\n")
-
 
 
 def plot_both(dset):
@@ -159,6 +107,6 @@ def plot_both(dset):
         plt.savefig('{0}{1}epochs{2}.png'.format(dset,round(100.0/(1.0 + mean_fac)), N_epoch))
         
         
-plot_both("val")
-plot_both("test")
+#plot_both("val")
+#plot_both("test")
     
