@@ -24,7 +24,7 @@ class MLPClassifier(nn.Module):
         x = F.log_softmax(x)
         return x
 loss_function = nn.NLLLoss()
-N_epoch = 50    
+N_epoch = 150    
     
 # Urn example
 N_blocks = 15
@@ -146,7 +146,7 @@ def plot_both(dset):
         ax.set_ylim([-1.4, 1.4])
         ax.legend()
         
-        plt.savefig('{0}{1}.png'.format(dset,round(100.0/(1.0 + mean_fac))))
+        plt.savefig('{0}{1}epochs{2}.png'.format(dset,round(100.0/(1.0 + mean_fac)), N_epoch))
         
         
 plot_both("val")
