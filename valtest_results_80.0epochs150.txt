@@ -1,0 +1,18 @@
+*********************
+
+Val loss on condition uninf_p : 
+ 22.0,     with prob : 36.0
+Test loss on condition uninf_p : 
+ 53.0,     with prob : 49.0
+
+*********************
+
+
+*********************
+
+Val loss on condition inf_p : 
+ 23.0,     with prob : 35.0
+Test loss on condition inf_p : 
+ 43.0,     with prob : 46.0
+
+*********************

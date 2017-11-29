@@ -98,33 +98,43 @@ for cond in data:
             loss.backward()
             optimizer.step()
             
-    # validate models - will come back to this for resource rationality
+    
+for cond in data:
+        # validate models - will come back to this for resource rationality
 
+    err_val_prob = 0    
     err_val = 0    
     err_test = 0  
+    err_test_prob = 0  
     
     print("\n*********************\n")
     pred = []
     for x, y in zip(data[cond]["val"]["X"], data[cond]["val"]["y"]):
         log_probs = models[cond](autograd.Variable(x)).view(1,-1)
-        err_val += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
+        err_val_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
+        err_val += round(np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]]))
         pred.append(np.exp(log_probs.data.numpy()[0][0]))
     
     data[cond]["val"]["y_pred"] = np.array(pred)        
-    err_val /= N_trials*valN_blocks
-    print("Validation loss on condition ", cond, " is ", err_val)
+    err_val /= (N_trials*valN_blocks)
+    err_val_prob /= (N_trials*valN_blocks)
+    print("Val loss on condition {0} : \n {1}, \
+    with prob{2}".format(cond,round(100*err_val), round(100*err_val_prob)))
     
     
     # test models
     pred = []
     for x, y in zip(data[cond]["test"]["X"], data[cond]["test"]["y"]):
         log_probs = models[cond](autograd.Variable(x)).view(1,-1)
-        err_test += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
+        err_test_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
+        err_test += round(np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]]))
         pred.append(np.exp(log_probs.data.numpy()[0][0]))
         
     data[cond]["test"]["y_pred"] = np.array(pred)
-    err_test /= N_trials*testN_blocks
-    print("Test loss on condition ", cond, " is ", err_test)
+    err_test /= (N_trials*testN_blocks)
+    err_test_prob /= (N_trials*testN_blocks)
+    print("Test loss on condition {0} : \n {1}, \
+    with prob{2}".format(cond,round(100*err_test), round(100*err_test_prob)))
     
         
     print("\n*********************\n")
