@@ -28,7 +28,7 @@ approx_models = {}
 hier_rational_models = {}
 block_rational_models = {}
 
-var_fac = 1000
+var_fac = 10
 mean_fac = 0.25
 NUM_LABELS = 2
 INPUT_SIZE = 3
@@ -104,9 +104,9 @@ def plot_both(dset):
         ax.set_ylim([-1.4, 1.4])
         ax.legend()
         
-        plt.savefig('{0}{1}epochs{2}.png'.format(dset,round(100.0/(1.0 + mean_fac)), N_epoch))
+        plt.savefig('{0}_m{1}_v{2}epochs{3}.png'.format(dset,round(100.0/(1.0 + mean_fac)), var_fac, N_epoch))
         
         
-#plot_both("val")
-#plot_both("test")
+plot_both("val")
+plot_both("test")
     

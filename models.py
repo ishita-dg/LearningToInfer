@@ -53,7 +53,7 @@ class MLPClassifier(nn.Module):
         data["y_pred"] = np.array(pred)        
         err /= count
         err_prob /= count
-        print("Loss : \n classification error : {0}, \
+        print("classification error : {0}, \
         with prob : {1}".format(round(100*err), round(100*err_prob)))
         print("\n*********************\n")
         
