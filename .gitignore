@@ -1,0 +1,8 @@
+*.pyc
+*.pyo
+*~
+.DS_Store
+.DS_Store?
+._*
+*TEST*
+*.ipynb_checkpoints*
