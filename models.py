@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from scipy.special import beta
+from utils import inv_logit
+from utils import logit
 
 torch.manual_seed(1)
 
@@ -37,12 +39,13 @@ class MLPClassifier(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 
-    def test (self, data, sg_epoch, name):
+    def test (self, data, sg_epoch, name = None):
         # validate approx_models - will come back to this for resource rationality
         err_prob = 0    
         err = 0 
         count = 0.0
         pred = []
+        datapoint = {}
         for x, y in zip(data["X"], data["y"]):
             log_probs = self(autograd.Variable(x)).view(1,-1)
             err_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
@@ -50,11 +53,18 @@ class MLPClassifier(nn.Module):
             pred.append(np.exp(log_probs.data.numpy()[0][1]))
             count += 1.0
             
-            datapoint = {"X": x.view(1, -1),
-                         "y": y.view(1, -1)}
+            if not datapoint.keys():
+                datapoint = {"X": x.view(1, -1),
+                             "y": y.view(1, -1)}                
+            else:
+                datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
+                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
+
+            
             self.train(datapoint, sg_epoch)
         
-        data["y_pred" + name] = np.array(pred)        
+        pred0 = torch.from_numpy(inv_logit(np.array(pred)).flatten())
+        data["y_pred_am"] = pred0.type(torch.FloatTensor)
         err /= count
         err_prob /= count
         print("classification error : {0}, \
@@ -66,7 +76,7 @@ class MLPClassifier(nn.Module):
 class MLPRegressor(nn.Module): 
 
     def __init__(self, input_size, nhid):
-        super(MLPClassifier, self).__init__()
+        super(MLPRegressor, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, 1)
         self.loss_function = nn.MSELoss()
@@ -81,7 +91,7 @@ class MLPRegressor(nn.Module):
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y"]):
+            for x, y in zip(data["X"], data["y_pred_hrm"]):
         
                 self.zero_grad()
         
@@ -93,27 +103,44 @@ class MLPRegressor(nn.Module):
                 self.optimizer.step()
         return
                 
-    def test (self, data, sg_epoch):
+    def test (self, data, sg_epoch, name = None):
         # validate approx_models - will come back to this for resource rationality
         err = 0 
+        err_prob = 0
         count = 0.0
         pred = []
-        for x, y in zip(data["X"], data["y"]):
+        datapoint = {}
+        
+        for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
             yval = self(autograd.Variable(x)).view(1,-1)
-            err += (yval.data.numpy() - y)**2
+            py = inv_logit(yval.data.numpy())[0][0]
+            ty = 1 - y.numpy()[0]
+            err0 = ty*py + (1-ty)*(1 -py)
+            err_prob += err0
+            err += round(err0) 
+            #err += (inv_logit(yval.data.numpy()) - y)**2
             pred.append(yval.data.numpy()[0])
             count += 1.0
             
-            datapoint = {"X": x.view(1, -1),
-                         "y": y.view(1, -1)}
+            if not datapoint.keys():
+                datapoint = {"X": x.view(1, -1),
+                             "y": y.view(1, -1),
+                             "y_pred_hrm": y_p.view(1, -1)}                
+            else:
+                datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
+                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
+                datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+
             self.train(datapoint, sg_epoch)
         
-        data["y_pred"] = np.array(pred)        
+        pred0 = torch.from_numpy(inv_logit(np.array(pred)).flatten())
+        data["y_pred_am"] = pred0.type(torch.FloatTensor)
         err /= count
-        err = sqrt(err)
-        print("MS error : {0}".format(round(100*err)))
+        err_prob /= count
+        print("classification error : {0}, \
+        with prob : {1}".format(round(100*err), round(100*err_prob)))
         print("*********************")
-    
+        
         return
         
     
@@ -191,19 +218,23 @@ class UrnRational():
     def train(self, data):
         
         count = 0
+        preds = []
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
             draw, lik, pri, N = x.numpy()
             urn = y.numpy()
-            #print("X", x.numpy())
-            #pred = self.pred_post(draw, lik, pri, N)
+            preds.append(self.pred_post(draw, lik, pri, N)[1])
             if not count%self.N_t:
                 self.update_params(pri, N, urn)
-            
-        return    
+        
+        pred0 = torch.from_numpy(inv_logit(np.array(preds))).view(-1,1)
+        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        
+        
+        return data
     
-    def test (self, data, name):
+    def test (self, data, name = None):
         # validate approx_models - will come back to this for resource rationality
         err = 0 
         err_prob = 0
@@ -217,20 +248,18 @@ class UrnRational():
             preds.append(pred)
             err_prob += self.pred_post(draw, lik, pri, N)[1 - urn]
             err += round(self.pred_post(draw, lik, pri, N)[1 - urn])
-            #print(pred)
             count += 1.0
             
-            #datapoint = {"X": x.view(1, -1),
-                         #"y": y.view(1, -1)}
-            #self.train(datapoint)
+        pred0 = torch.from_numpy(inv_logit(np.array(preds))).view(-1,1)
+        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
-        data["y_pred" + name] = np.array(preds).flatten()       
         err /= count
         err_prob /= count
         print("classification error : {0}, \
         with prob : {1}".format(round(100*err), round(100*err_prob)))
         print("*********************")
-        return
+
+        return data
         
         
     

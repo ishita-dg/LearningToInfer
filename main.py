@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(6)
 
-N_epoch = 5
-sg_epoch = 3
+N_epoch = 20
+sg_epoch = 0
     
-N_blocks = 10
-N_trials = 60
+N_blocks = 100
+N_trials = 20
 N_balls = 9
-testN_blocks = 1
-valN_blocks = 3
+testN_blocks = 3
+valN_blocks = 5
 
 expts = {"disc": {},
          "cont": {}}
@@ -86,30 +86,35 @@ for expt in ["disc"]:
         
             
         # train models
+
+        # Block model doesn't get trained
+        # Hierarchical model trains it's prior over mu_p and mu_l
+        d = expts[expt]["data"][cond]["train"]
+        d = expts[expt]["hrm"][cond].train(d)
+
         # approx
         expts[expt]["am"][cond].optimizer = \
             optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
-        expts[expt]["am"][cond].train(expts[expt]["data"][cond]["train"], N_epoch)
-        # Block model doesn't get trained
-        # Hierarchical model trains it's prior over mu_p and mu_l
-        expts[expt]["hrm"][cond].train(expts[expt]["data"][cond]["train"])
+        expts[expt]["am"][cond].train(d, N_epoch)
                 
         
     for cond in expts[expt]["data"]:
-        
-        print("Condition is : ", cond)
+                
         print("Val")
         dset = "val"
-        expts[expt]["am"][cond].test(expts[expt]["data"][cond][dset], sg_epoch, 'am')
-        expts[expt]["hrm"][cond].test(expts[expt]["data"][cond][dset], 'hrm')
+        d = expts[expt]["data"][cond][dset]
+        d = expts[expt]["hrm"][cond].test(d)
+        d = expts[expt]["am"][cond].test(d, sg_epoch)
+        
         print("Test")
         dset = "test"
-        expts[expt]["am"][cond].test(expts[expt]["data"][cond][dset], sg_epoch, 'am')
-        expts[expt]["hrm"][cond].test(expts[expt]["data"][cond][dset], 'hrm')
+        
+        d = expts[expt]["data"][cond][dset]
+        d = expts[expt]["hrm"][cond].test(d)
+        d = expts[expt]["am"][cond].test(d, sg_epoch)
         
     
                 
-    
     utils.plot_both(expts[expt]["data"], 'hrm', "val", fac, N_epoch)
     utils.plot_both(expts[expt]["data"], 'hrm', "test", fac, N_epoch)
     utils.plot_both(expts[expt]["data"], 'am', "val", fac, N_epoch)
@@ -118,20 +123,25 @@ for expt in ["disc"]:
         
         
         
-#parity = 2*expts[expt]["data"]["inf_p"]['test']["X"][1:-1,0].numpy() -1
+#parity = 2*d["X"][1:-1,0].numpy() -1
 parity = np.ones_like(expts[expt]["data"]["inf_p"]['test']["X"][1:-1,0].numpy())
 
-prob = False
+prob = True
 
-updates_inf = np.vstack((np.abs(utils.updates(expts[expt]["data"]["inf_p"]['test']["y_predhrm"], prob)), 
-                         np.abs(utils.updates(expts[expt]["data"]["inf_p"]['test']["y_predam"], prob)),
-                         np.abs(utils.updates(expts[expt]["data"]["inf_p"]['test']["X"][:,0].numpy())),
-                         np.abs(utils.updates(expts[expt]["data"]["inf_p"]['test']["X"][:,2].numpy()))))
+d = expts[expt]["data"]["inf_p"]['test']
 
-updates_uninf = np.vstack((np.abs(utils.updates(expts[expt]["data"]["uninf_p"]['test']["y_predhrm"], prob)), 
-                         np.abs(utils.updates(expts[expt]["data"]["uninf_p"]['test']["y_predam"], prob)),
-                         np.abs(utils.updates(expts[expt]["data"]["uninf_p"]['test']["X"][:,0].numpy())),
-                         np.abs(utils.updates(expts[expt]["data"]["uninf_p"]['test']["X"][:,2].numpy()))))
+updates_inf = np.vstack((np.abs(utils.updates(d["y_pred_hrm"].numpy().flatten(), N_trials, prob)), 
+                         np.abs(utils.updates(d["y_pred_am"].numpy(), N_trials, prob)),
+                         np.abs(utils.updates(d["X"][:,0].numpy(), N_trials)),
+                         np.abs(utils.updates(d["X"][:,2].numpy(), N_trials))))
+
+
+d = expts[expt]["data"]["uninf_p"]['test']
+
+updates_uninf = np.vstack((np.abs(utils.updates(d["y_pred_hrm"].numpy().flatten(), N_trials, prob)), 
+                         np.abs(utils.updates(d["y_pred_am"].numpy(), N_trials, prob)),
+                         np.abs(utils.updates(d["X"][:,0].numpy(), N_trials)),
+                         np.abs(utils.updates(d["X"][:,2].numpy(), N_trials))))
 
 
 
@@ -142,11 +152,14 @@ updates_uninf = np.vstack((np.abs(utils.updates(expts[expt]["data"]["uninf_p"]['
 #inf_am = np.cumsum(updates_inf[2,:]*updates_inf[1,:])
 #uninf_am = np.cumsum(updates_uninf[2,:]*updates_uninf[1,:])
 
-inf_hrm = updates_inf[2,:]*updates_inf[0,:]
-uninf_hrm = updates_uninf[2,:]*updates_uninf[0,:]
+#mask = updates_inf[2,:]
+mask = np.ones_like(updates_inf[2,:])
 
-inf_am = updates_inf[2,:]*updates_inf[1,:]
-uninf_am = updates_uninf[2,:]*updates_uninf[1,:]
+inf_hrm = mask*updates_inf[0,:]
+uninf_hrm = mask*updates_uninf[0,:]
+
+inf_am = mask*updates_inf[1,:]
+uninf_am = mask*updates_uninf[1,:]
 
 inf_hrm = inf_hrm[np.nonzero(inf_hrm)]
 uninf_hrm = uninf_hrm[np.nonzero(uninf_hrm)]
@@ -163,13 +176,17 @@ uninf_am = uninf_am[np.nonzero(uninf_am)]
 #inf_am /= inf_avg
 #inf_hrm /= inf_avg
 
-min, max = 0.0, 3.6*prob + (1-prob)*1.0
+min, max = 0.0, 1.0*prob + (1-prob)*1.0
 
 #plt.scatter(inf_hrm/inf_hrm[-1], inf_am/inf_am[-1], label = "inf")
 #plt.scatter(uninf_hrm/uninf_hrm[-1], uninf_am/uninf_am[-1], label = "uninf")
 
-plt.scatter(inf_hrm, inf_am, label = "low_dispersion")
-plt.scatter(uninf_hrm, uninf_am, label = "high_dispersion")
+s_order = np.ceil(np.arange(N_trials - 2)*100/N_trials)
+s_order = [int(x) for x in s_order]
+order = np.tile(s_order, testN_blocks)
+
+plt.scatter(inf_hrm, inf_am,  cmap="Blues_r", c=order, label = "low_dispersion", alpha =0.6)
+plt.scatter(uninf_hrm, uninf_am,  cmap="Reds_r", c=order, label = "high_dispersion", alpha = 0.6)
 
 #plt.plot(inf_hrm, inf_am, label = "low_dispersion")
 #plt.plot(uninf_hrm, uninf_am, label = "high_dispersion")
