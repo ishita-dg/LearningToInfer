@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 torch.manual_seed(6)
 
 N_epoch = 30
-sg_epoch = 0
+sg_epoch = 1
     
 N_blocks = 20
 N_trials = 10
@@ -39,7 +39,7 @@ for expt in ["disc"]:
     expts[expt]["block_rational_models"] = {}
     
 
-    fac = 100.0
+    fac = 10.0
     prior_fac = 1
     NUM_LABELS = 2
     INPUT_SIZE = 4
