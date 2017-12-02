@@ -24,21 +24,68 @@ def plot_both(data, model, dset, fac, N_epoch):
         ax = fig.add_subplot(1, 2, count)
         ax.plot(2*data[cond][dset]["X"].numpy()[:, 0] - 1, label = "likl/ball_drawn")
         ax.plot(data[cond][dset]["X"].numpy()[:, 2], label = "pri/N_left")
-        ax.plot(data[cond][dset]["y_pred_" + model].numpy() - 0.5, label = "prediction")
+        ax.plot(inv_logit(data[cond][dset]["y_pred_" + model].numpy()) - 0.5, label = "prediction")
         #print("\n", model, data[cond][dset]["y_pred" + model] - 0.5)
         ax.plot(data[cond][dset]["y"].numpy() - 0.5, label = "true", linestyle = "--")
         ax.set_title('{0}'.format(cond))
         ax.set_ylim([-1.4, 1.4])
         ax.legend()
         
-        plt.savefig('figs/{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch))
+    plt.savefig('figs/{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch))
         
         
-def updates(array, N_trials, prob = False):
+def updates(array, N_trials, prob = True):
     if prob:
-        ret = np.array([logit(array[i+1]) - logit(array[i]) for i in np.arange(array.size - 1) \
+        ret = np.array([inv_logit(array[i+1]) - inv_logit(array[i]) for i in np.arange(array.size - 1) \
                         if (i%N_trials != 0 and i%N_trials != N_trials-1)])
     else:
         ret = np.array([array[i+1] - array[i] for i in np.arange(array.size - 1) \
                         if (i%N_trials != 0 and i%N_trials != N_trials-1)])
     return ret
+
+
+
+def get_binned(fbin, tbin):
+    num = 10
+    bins = np.linspace(0,1,num = num) + np.random.uniform(-0.05, 0.05)
+    ind = np.digitize(fbin, bins = bins)
+    y = []
+    se = []
+    x = []
+    
+    for i in np.arange(50):
+        i += 1
+        rvals = tbin[ind == i]
+        if rvals.size:
+            x.append(bins[i-1])
+            y.append(np.mean(rvals))
+            se.append(np.std(rvals))
+    
+    return (x, y, se)
+
+def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials):
+    
+    inf_hrm = np.abs(updates(di["y_pred_hrm"].numpy().flatten(), N_trials))
+    inf_am = np.abs(updates(di["y_pred_am"].numpy().flatten(), N_trials) )
+    
+    uninf_hrm = np.abs(updates(du["y_pred_hrm"].numpy().flatten(), N_trials))
+    uninf_am = np.abs(updates(du["y_pred_am"].numpy().flatten(), N_trials))
+    
+    plt.scatter(inf_hrm, inf_am, alpha =0.1)
+    plt.scatter(uninf_hrm, uninf_am, alpha = 0.1)
+    
+    ix, iy, ise = get_binned(fbin = inf_hrm, tbin = inf_am)
+    ux, uy, use = get_binned(fbin = uninf_hrm, tbin = uninf_am)
+
+    plt.errorbar(ix, iy, ise, label = "low_dispersion")
+    plt.errorbar(ux, uy, use, label = "high_dispersion")
+
+    plt.plot([0,1], [0,1], c = 'k')
+
+    plt.legend()   
+    plt.title("Calibration for updates")
+    plt.xlabel("rational model update")
+    plt.ylabel("approx model update")
+    plt.legend()
+    
+    plt.savefig('figs/updates_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials))

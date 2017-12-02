@@ -7,6 +7,7 @@ import torch.optim as optim
 from scipy.special import beta
 from utils import inv_logit
 from utils import logit
+import copy
 
 torch.manual_seed(1)
 
@@ -39,7 +40,7 @@ class MLPClassifier(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 
-    def test (self, data, sg_epoch, name = None):
+    def test (self, data, sg_epoch, nft = True, name = None):
         # validate approx_models - will come back to this for resource rationality
         err_prob = 0    
         err = 0 
@@ -53,7 +54,7 @@ class MLPClassifier(nn.Module):
             pred.append(np.exp(log_probs.data.numpy()[0][1]))
             count += 1.0
             
-            if not datapoint.keys():
+            if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y": y.view(1, -1)}                
             else:
@@ -63,7 +64,7 @@ class MLPClassifier(nn.Module):
             
             self.train(datapoint, sg_epoch)
         
-        pred0 = torch.from_numpy(inv_logit(np.array(pred)).flatten())
+        pred0 = torch.from_numpy(logit(np.array(pred)).flatten())
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
         err /= count
         err_prob /= count
@@ -103,13 +104,15 @@ class MLPRegressor(nn.Module):
                 self.optimizer.step()
         return
                 
-    def test (self, data, sg_epoch, name = None):
+    def test (self, data, sg_epoch, N_trials, nft = True, name = None):
         # validate approx_models - will come back to this for resource rationality
         err = 0 
         err_prob = 0
         count = 0.0
         pred = []
         datapoint = {}
+        
+        orig = copy.deepcopy(self)
         
         for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
             yval = self(autograd.Variable(x)).view(1,-1)
@@ -122,7 +125,7 @@ class MLPRegressor(nn.Module):
             pred.append(yval.data.numpy()[0])
             count += 1.0
             
-            if not datapoint.keys():
+            if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y": y.view(1, -1),
                              "y_pred_hrm": y_p.view(1, -1)}                
@@ -131,9 +134,13 @@ class MLPRegressor(nn.Module):
                 datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
                 datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
 
-            self.train(datapoint, sg_epoch)
+            if (not count%N_trials):
+                self = copy.deepcopy(orig)
+                datapoint = {}
+            else:
+                self.train(datapoint, sg_epoch)
         
-        pred0 = torch.from_numpy(inv_logit(np.array(pred)).flatten())
+        pred0 = torch.from_numpy(np.array(pred).flatten())
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
         err /= count
         err_prob /= count
@@ -228,7 +235,7 @@ class UrnRational():
             if not count%self.N_t:
                 self.update_params(pri, N, urn)
         
-        pred0 = torch.from_numpy(inv_logit(np.array(preds))).view(-1,1)
+        pred0 = torch.from_numpy(logit(np.array(preds))).view(-1,1)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
         
@@ -250,7 +257,7 @@ class UrnRational():
             err += round(self.pred_post(draw, lik, pri, N)[1 - urn])
             count += 1.0
             
-        pred0 = torch.from_numpy(inv_logit(np.array(preds))).view(-1,1)
+        pred0 = torch.from_numpy(logit(np.array(preds))).view(-1,1)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
         err /= count

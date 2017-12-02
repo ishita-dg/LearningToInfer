@@ -8,15 +8,15 @@ import torch.optim as optim
 import models
 reload(models)
 
-torch.manual_seed(30)
+torch.manual_seed(1)
 
 
 class Urn ():
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        #return models.MLPRegressor(INPUT_SIZE, nhid)
-        return models.MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
+        return models.MLPRegressor(INPUT_SIZE, nhid)
+        #return models.MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
 
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
