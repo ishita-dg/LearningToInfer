@@ -69,8 +69,9 @@ class MLPClassifier(nn.Module):
         err /= count
         err_prob /= count
         print("classification error : {0}, \
-        with prob : {1}".format(round(100*err), round(100*err_prob)))
+        MSE error : {1}".format(round(100*err), -1))
         print("*********************")
+        
         
     
 
@@ -106,8 +107,8 @@ class MLPRegressor(nn.Module):
                 
     def test (self, data, sg_epoch, N_trials, nft = True, name = None):
         # validate approx_models - will come back to this for resource rationality
-        err = 0 
-        err_prob = 0
+        err_cl = 0 
+        err_mse = 0
         count = 0.0
         pred = []
         datapoint = {}
@@ -116,12 +117,6 @@ class MLPRegressor(nn.Module):
         
         for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
             yval = self(autograd.Variable(x)).view(1,-1)
-            py = inv_logit(yval.data.numpy())[0][0]
-            ty = 1 - y.numpy()[0]
-            err0 = ty*py + (1-ty)*(1 -py)
-            err_prob += err0
-            err += round(err0) 
-            #err += (inv_logit(yval.data.numpy()) - y)**2
             pred.append(yval.data.numpy()[0])
             count += 1.0
             
@@ -139,13 +134,19 @@ class MLPRegressor(nn.Module):
                 datapoint = {}
             else:
                 self.train(datapoint, sg_epoch)
+                
+            py = inv_logit(yval.data.numpy())[0][0]
+            ty = 1 - y.numpy()[0]
+            err_cl += round(ty*py + (1-ty)*(1 -py)) 
+            err_mse += (y.numpy() - yval.data.numpy())**2
+            
         
         pred0 = torch.from_numpy(np.array(pred).flatten())
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
-        err /= count
-        err_prob /= count
+        err_cl /= count
+        err_mse /= count
         print("classification error : {0}, \
-        with prob : {1}".format(round(100*err), round(100*err_prob)))
+        MSE error : {1}".format(round(100*err_cl), round(err_mse)))
         print("*********************")
         
         return
@@ -155,7 +156,6 @@ class MLPRegressor(nn.Module):
 class UrnRational():
         
     def __init__(self, prior_fac, N_trials):
-        self.alpha = prior_fac
         self.alpha = prior_fac
         self.N_t = N_trials
         self.mus = []
@@ -198,7 +198,7 @@ class UrnRational():
     def update_params(self, pri, N, urn):
         
 
-        # Brute force MLE on point estimates of mu
+        # Brute force MLE on point estimates of alpha
         pri *= N
         n_in = (N + pri)*self.N_t/2.0 + urn
         self.mus.append(n_in*1.0)
@@ -263,7 +263,7 @@ class UrnRational():
         err /= count
         err_prob /= count
         print("classification error : {0}, \
-        with prob : {1}".format(round(100*err), round(100*err_prob)))
+        MSE error : {1}".format(round(100*err), -1))
         print("*********************")
 
         return data
@@ -272,6 +272,65 @@ class UrnRational():
     
 class ButtonRational():
         
-    def __init__(self):
-        self.holder = 0
+    def __init__(self, prior_fac, N_trials):
+        self.m = 0
+        self.s2 = 1**2
+        self.v2 = 10**2
+        self.N_t = N_trials
+        self.mus = []
+    
+    def update_params(self, msf):
+        # MLE for variance across blocks
+        self.mus.append(msf)
+        if len(self.mus) > 1 : self.v2 = np.var(np.array(self.mus))
+        return
+    
+    def pred_MAP(self, last, msf, N):
+        est = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
+            (self.v2 * N * self.N_t + self.s2)
+        return est
+    
+    def train(self, data):
         
+        count = 0
+        preds = []
+
+        for x, y in zip(data["X"], data["y"]):
+            count += 1                
+            last, msf, N, _ = x.numpy()
+            preds.append(self.pred_MAP(last, msf, N))
+            if not count%self.N_t:
+                self.update_params(msf)
+        
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,1)
+        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        
+        
+        return data
+    
+    def test (self, data, name = None):
+        # validate approx_models - will come back to this for resource rationality
+        err_mse = 0 
+        count = 0.0
+        preds = []
+        
+        for x, y in zip(data["X"], data["y"]):
+            last, msf, N, _ = x.numpy()
+            tmu = y.numpy()
+            pred = self.pred_MAP(last, msf, N)
+            preds.append(pred)
+            err_mse += (pred - tmu)**2
+            count += 1.0
+            
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,1)
+        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        
+        err_mse /= count
+        print("classification error : {0}, \
+        MSE error : {1}".format( -1, round(err_mse)))
+        print("*********************")
+         
+        return data
+            
+    
+    

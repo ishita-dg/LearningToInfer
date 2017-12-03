@@ -109,38 +109,83 @@ class Urn ():
 
 class Button ():
     
-    def get_approxmodel(self, INPUT_SIZE, nhid):
+    def get_approxmodel(self, _, INPUT_SIZE, nhid):
         return models.MLPRegressor(INPUT_SIZE, nhid)
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
         
         """
-        Insert DGP here
+        only ps are there, ls are None
         """
         
-        X = np.hstack((draws, liks, pris))
+        s = 1
+        
+        last = np.empty(shape = (N_trials*N_blocks, 1))
+        m_so_far = np.empty(shape = (N_trials*N_blocks, 1))
+        Ns = np.empty(shape = (N_trials*N_blocks, 1))
+        
+        tvals = np.empty(shape = (N_trials*N_blocks, 1))
+        
+        pad = np.zeros(shape = (N_trials*N_blocks, 1))
+        
+        for i, p in enumerate(ps):
+            
+            vals = np.random.normal(p, s, N_trials)
+            prvs = vals.copy()
+            prvs[1:] = prvs[:-1]
+            prvs[0] = 0
+            
+            N_b = (1.0*np.arange(N_trials))/N_trials
+            
+            msf = np.cumsum(vals)/(1.0*np.arange(N_trials) + 1)
+            msf[1:] = msf[:-1]
+            msf[0] = 0
+                
+            last[i*N_trials : (i+1)*N_trials, 0] = prvs
+            m_so_far[i*N_trials : (i+1)*N_trials, 0] = msf
+            Ns[i*N_trials : (i+1)*N_trials, 0] = N_b
+            
+            tvals[i*N_trials : (i+1)*N_trials, 0] = vals            
+            
+        
+        
+        X = np.hstack((last, m_so_far, Ns, pad))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
-        Y = torch.from_numpy(urns)
-        Y = Y.type(torch.LongTensor)
+        Y = torch.from_numpy(tvals).view(-1,1)
+        Y = Y.type(torch.FloatTensor)
         
         
         return(X, Y)
     
     
     
-    def assign_PL(self, N_balls, N_blocks, var_fac, mean_fac_prior, mean_fac_likl):
+    def assign_PL(self, N_balls, N_blocks, fac):
+        
+        # Ignore N_balls.
+        # fac here will be < 0 -> high variance
+        # > 0 -> low variance
+        # in keeping with the beta prior in Urns
+        
+        m0 = 0
+
+        vl = 1.0/np.sqrt(fac)
+        vh = 1.0*np.sqrt(fac)
+        
     
-        """
-        Insert how to draw params here
-        """
-        
-        return priors, likls
-            
+        if fac > 1.0:
+            priors = np.random.normal(m0, vh, N_blocks)
+        elif fac < 1.0:
+            priors = np.random.normal(m0, vl, N_blocks)
+        else:
+            raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
+
+        return priors, None
+    
         
     
-    def get_rationalmodel(self):
+    def get_rationalmodel(self, prior_fac, N_trials):
         
-        return models.ButtonRational(prior_var_fac)
+        return models.ButtonRational(prior_fac, N_trials)
     

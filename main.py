@@ -10,15 +10,15 @@ import utils
 
 import matplotlib.pyplot as plt
 
-torch.manual_seed(6)
+torch.manual_seed(66)
 
 N_epoch = 30
-sg_epoch = 1
+sg_epoch = 0
     
-N_blocks = 20
+N_blocks = 30
 N_trials = 10
 N_balls = 9
-testN_blocks = 200
+testN_blocks = 2
 valN_blocks = 2
 
 expts = {"disc": {},
@@ -29,7 +29,7 @@ expts["cont"]["expt_type"] = generative.Button()
 
 # running only for disc expt (Urn)   
 
-for expt in ["disc"]:
+for expt in ["cont"]:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}
@@ -43,6 +43,7 @@ for expt in ["disc"]:
     prior_fac = 1
     NUM_LABELS = 2
     INPUT_SIZE = 4
+    #INPUT_SIZE = 2    
     nhid = 5
     
     
@@ -99,15 +100,20 @@ for expt in ["disc"]:
                 
         
     for cond in expts[expt]["data"]:
+        
+        
+        expts[expt]["am"][cond].optimizer = \
+            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.01)
+        
                 
-        print("Val")
+        print(cond, "Val")
         dset = "val"
         d = expts[expt]["data"][cond][dset]
         d = expts[expt]["hrm"][cond].test(d)
 
         d = expts[expt]["am"][cond].test(d, sg_epoch, N_trials)
         
-        print("Test")
+        print(cond, "Test")
         dset = "test"
         
         d = expts[expt]["data"][cond][dset]
@@ -116,16 +122,16 @@ for expt in ["disc"]:
         d = expts[expt]["am"][cond].test(d, sg_epoch, N_trials)
         
     
-                
+                    
     if testN_blocks < 4:
-        utils.plot_both(expts[expt]["data"], 'hrm', "val", fac, N_epoch)
-        utils.plot_both(expts[expt]["data"], 'hrm', "test", fac, N_epoch)
-        utils.plot_both(expts[expt]["data"], 'am', "val", fac, N_epoch)
-        utils.plot_both(expts[expt]["data"], 'am', "test", fac, N_epoch)
-    
+        utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
+        utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
+        utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+        utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
         
         
 
-di = expts[expt]["data"]["inf_p"]['test']
-du = expts[expt]["data"]["uninf_p"]['test']
-utils.plot_calibration(di, du, N_epoch, sg_epoch, round(fac), N_blocks, N_trials)
+    else:
+        di = expts[expt]["data"]["inf_p"]['test']
+        du = expts[expt]["data"]["uninf_p"]['test']
+        utils.plot_calibration(di, du, N_epoch, sg_epoch, round(fac), N_blocks, N_trials, expt)
