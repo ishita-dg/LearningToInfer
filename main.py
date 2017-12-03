@@ -18,7 +18,7 @@ sg_epoch = 0
 N_blocks = 30
 N_trials = 10
 N_balls = 9
-testN_blocks = 2
+testN_blocks = 200
 valN_blocks = 2
 
 expts = {"disc": {},
@@ -39,7 +39,7 @@ for expt in ["cont"]:
     expts[expt]["block_rational_models"] = {}
     
 
-    fac = 10.0
+    fac = 4.0
     prior_fac = 1
     NUM_LABELS = 2
     INPUT_SIZE = 4

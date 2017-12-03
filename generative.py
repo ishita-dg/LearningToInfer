@@ -169,17 +169,21 @@ class Button ():
         # in keeping with the beta prior in Urns
         
         m0 = 0
+        
+        v = np.sqrt(fac)
+        
+        priors = np.random.normal(m0, v, N_blocks)
 
-        vl = 1.0/np.sqrt(fac)
-        vh = 1.0*np.sqrt(fac)
+        #vl = 1.0/np.sqrt(fac)
+        #vh = 1.0*np.sqrt(fac)
         
     
-        if fac > 1.0:
-            priors = np.random.normal(m0, vh, N_blocks)
-        elif fac < 1.0:
-            priors = np.random.normal(m0, vl, N_blocks)
-        else:
-            raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
+        #if fac > 1.0:
+            
+        #elif fac < 1.0:
+            #priors = np.random.normal(m0, vl, N_blocks)
+        #else:
+            #raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
 
         return priors, None
     
