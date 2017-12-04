@@ -77,10 +77,10 @@ class MLPClassifier(nn.Module):
 
 class MLPRegressor(nn.Module): 
 
-    def __init__(self, input_size, nhid):
+    def __init__(self, input_size, output_size, nhid):
         super(MLPRegressor, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
-        self.fc2 = nn.Linear(nhid, 1)
+        self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = nn.MSELoss()
         return
 
@@ -117,7 +117,7 @@ class MLPRegressor(nn.Module):
         
         for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
             yval = self(autograd.Variable(x)).view(1,-1)
-            pred.append(yval.data.numpy()[0])
+            pred.append(yval.data.numpy()[0][0])
             count += 1.0
             
             if (not datapoint.keys() or nft):
@@ -138,7 +138,7 @@ class MLPRegressor(nn.Module):
             py = inv_logit(yval.data.numpy())[0][0]
             ty = 1 - y.numpy()[0]
             err_cl += round(ty*py + (1-ty)*(1 -py)) 
-            err_mse += (y.numpy() - yval.data.numpy())**2
+            err_mse += (y.numpy() - yval.data.numpy()[0][0])**2
             
         
         pred0 = torch.from_numpy(np.array(pred).flatten())
@@ -146,7 +146,7 @@ class MLPRegressor(nn.Module):
         err_cl /= count
         err_mse /= count
         print("classification error : {0}, \
-        MSE error : {1}".format(round(100*err_cl), round(err_mse)))
+        MSE error : {1}".format(round(100*err_cl), err_mse))
         print("*********************")
         
         return
@@ -286,9 +286,12 @@ class ButtonRational():
         return
     
     def pred_MAP(self, last, msf, N):
-        est = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
+        est_mu = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
             (self.v2 * N * self.N_t + self.s2)
-        return est
+        
+        est_sig = 1.0/\
+            np.sqrt(N * self.N_t/self.s2 + 1.0/self.v2)
+        return np.array([est_mu, est_sig])
     
     def train(self, data):
         
@@ -302,7 +305,7 @@ class ButtonRational():
             if not count%self.N_t:
                 self.update_params(msf)
         
-        pred0 = torch.from_numpy(np.array(preds)).view(-1,1)
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
         
@@ -322,12 +325,12 @@ class ButtonRational():
             err_mse += (pred - tmu)**2
             count += 1.0
             
-        pred0 = torch.from_numpy(np.array(preds)).view(-1,1)
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
         err_mse /= count
         print("classification error : {0}, \
-        MSE error : {1}".format( -1, round(err_mse)))
+        MSE error : {1}".format( -1, err_mse))
         print("*********************")
          
         return data

@@ -15,7 +15,7 @@ class Urn ():
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLPRegressor(INPUT_SIZE, nhid)
+        return models.MLPRegressor(INPUT_SIZE, 1, nhid)
         #return models.MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
 
     
@@ -110,7 +110,7 @@ class Urn ():
 class Button ():
     
     def get_approxmodel(self, _, INPUT_SIZE, nhid):
-        return models.MLPRegressor(INPUT_SIZE, nhid)
+        return models.MLPRegressor(INPUT_SIZE, 2, nhid)
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
         

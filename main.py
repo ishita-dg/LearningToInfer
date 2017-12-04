@@ -12,15 +12,21 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(66)
 
-N_epoch = 30
+N_epoch = 50
 sg_epoch = 0
     
-N_blocks = 30
+N_blocks = 20
 N_trials = 10
 N_balls = 9
-testN_blocks = 200
+testN_blocks = 300
 valN_blocks = 2
 
+fac = 4.0
+prior_fac = 1
+NUM_LABELS = 2
+INPUT_SIZE = 4  
+nhid = 5
+    
 expts = {"disc": {},
          "cont": {}}
 
@@ -37,15 +43,6 @@ for expt in ["cont"]:
     expts[expt]["am"] = {}
     expts[expt]["hrm"] = {}
     expts[expt]["block_rational_models"] = {}
-    
-
-    fac = 4.0
-    prior_fac = 1
-    NUM_LABELS = 2
-    INPUT_SIZE = 4
-    #INPUT_SIZE = 2    
-    nhid = 5
-    
     
     for cond in expts[expt]["data"]:
         expts[expt]["data"][cond]["train"] = {}

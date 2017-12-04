@@ -87,10 +87,10 @@ def get_binned(fbin, tbin, lim):
 
 def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     
-    inf_hrm = np.abs(updates(di["y_pred_hrm"].numpy().flatten(), N_trials, expt))
+    inf_hrm = np.abs(updates(di["y_pred_hrm"].numpy()[:,0].flatten(), N_trials, expt))
     inf_am = np.abs(updates(di["y_pred_am"].numpy().flatten(), N_trials, expt) )
     
-    uninf_hrm = np.abs(updates(du["y_pred_hrm"].numpy().flatten(), N_trials, expt))
+    uninf_hrm = np.abs(updates(du["y_pred_hrm"].numpy()[:,0].flatten(), N_trials, expt))
     uninf_am = np.abs(updates(du["y_pred_am"].numpy().flatten(), N_trials, expt))
     
     plt.scatter(inf_hrm, inf_am, alpha =0.1)
