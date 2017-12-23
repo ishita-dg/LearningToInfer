@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+#import torch.distributions as dists
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
@@ -82,7 +83,7 @@ class MLP_disc(nn.Module):
 class MLP_cont(nn.Module): 
 
     def __init__(self, input_size, output_size, nhid, loss_function):
-        super(MLP_disc, self).__init__()
+        super(MLP_cont, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
@@ -101,7 +102,10 @@ class MLP_cont(nn.Module):
         
                 self.zero_grad()
         
-                target = autograd.Variable(y)
+                if type(y) is np.ndarray:
+                    target = autograd.Variable(y)
+                else:
+                    target = y
                 yval = self(autograd.Variable(x)).view(1,-1)
         
                 loss = self.loss_function(yval, target)
@@ -283,12 +287,26 @@ class ButtonRational():
         if len(self.mus) > 1 : self.v2 = np.var(np.array(self.mus))
         return
     
-    def log_joint(last, msf, N):
-        #*TODO*
-        return lj
+    def log_joint(self, last, msf, N):
+        msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
+        m = autograd.Variable(torch.Tensor([self.m])).view(1,-1)
+        s2 = autograd.Variable(torch.Tensor([self.s2])).view(1,-1)
+        v2 = autograd.Variable(torch.Tensor(np.array([self.v2]))).view(1,-1)
+                
+        pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
+                                    + torch.log(2*np.pi*s2))/2.0
+        
+        likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
+                                            + torch.log(2*np.pi*v2))/2.0
+        
+        #likl = dists.Normal(msf, torch.sqrt(s2))
+        #pri = dists.Normal(self.m, torch.sqrt(v2))
+        
+        lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
+        return lj_func
         
     
-    def pred_post(self, last, msf, N):
+    def pred_post_MAP(self, last, msf, N):
         est_mu = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
             (self.v2 * N * self.N_t + self.s2)
         
@@ -300,18 +318,20 @@ class ButtonRational():
         
         count = 0
         preds = []
-        f_joint = []
+        f_joints = []
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
             last, msf, N, _ = x.numpy()
-            preds.append(self.pred_post(last, msf, N))
+            preds.append(self.pred_post_MAP(last, msf, N))
+            f_joints.append(self.log_joint(last, msf, N))
             if not count%self.N_t:
                 self.update_params(msf)
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
+        data["y_joint"] = f_joints
         
         return data
     
@@ -324,7 +344,7 @@ class ButtonRational():
         for x, y in zip(data["X"], data["y"]):
             last, msf, N, _ = x.numpy()
             tmu = y.numpy()
-            pred = self.pred_post(last, msf, N)
+            pred = self.pred_post_MAP(last, msf, N)
             preds.append(pred)
             err_mse += (pred - tmu)**2
             count += 1.0

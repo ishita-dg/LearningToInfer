@@ -37,7 +37,7 @@ expts["cont"]["expt_type"] = generative.Button()
 
 # running only for disc expt (Urn)   
 
-for expt in ["disc"]:
+for expt in ["cont"]:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}

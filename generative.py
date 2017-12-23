@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+#import torch.distributions as dists
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
@@ -127,20 +128,31 @@ class Button ():
     
     @staticmethod
     def VI_loss_function(yval, target):
-        # Here the target is a lambda function
+        # Here the target is a lambda function for log joint
         # yval are the params given
         n_samp = 30
         
-        D = len(yval)/2
-        means, std = yval[:D], yval[D:]
-        ELBO = gaussian_entropy(std)
+        D = int(yval.data.numpy().size/2.0)
+        #mean, std = autograd.Variable(yval.data[0,:D]), autograd.Variable(yval.data[0,-D:])
+                #mean, std = autograd.Variable(temp[0,:D].reshape(1, -1)), autograd.Variable(tempyval[0,-D:].reshape(1, -1))
+        mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
+
+        ELBO = autograd.Variable(gaussian_entropy(std.data))
         
+        # dists not available in python 2 version
+        #q = dists.Normal(mean, std)
+        #samples = q.sample_n(n_samp)
+        #ELBO += torch.mean(target(samples))
+        
+        crossterm = 0
         count = 0
         while count < n_samp:
-            count +=1 
-            sample = torch.normal(means = means, std = std)
-            ELBO += target(sample)
+            count += 1
+            sample = torch.normal(means = mean, std = std)
+            crossterm += target(sample)
         
+        print (crossterm, ELBO)
+        ELBO += crossterm/count
         
         return -ELBO
     
