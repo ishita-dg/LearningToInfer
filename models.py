@@ -11,13 +11,15 @@ import copy
 
 torch.manual_seed(1)
 
-class MLPClassifier(nn.Module): 
 
-    def __init__(self, num_labels, input_size, nhid):
-        super(MLPClassifier, self).__init__()
+class MLP_disc(nn.Module): 
+
+    def __init__(self, input_size, output_size, nhid, loss_function):
+        super(MLP_disc, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
-        self.fc2 = nn.Linear(nhid, num_labels)
-        self.loss_function = nn.NLLLoss()
+        self.fc2 = nn.Linear(nhid, output_size)
+        self.loss_function = loss_function
+        return
 
     def forward(self, x):
         x = self.fc1(x)
@@ -29,71 +31,7 @@ class MLPClassifier(nn.Module):
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y"]):
-        
-                self.zero_grad()
-        
-                target = autograd.Variable(y)
-                log_probs = self(autograd.Variable(x)).view(1,-1)
-        
-                loss = self.loss_function(log_probs, target)
-                loss.backward()
-                self.optimizer.step()
-                
-    def test (self, data, sg_epoch, nft = True, name = None):
-        # validate approx_models - will come back to this for resource rationality
-        err_prob = 0    
-        err = 0 
-        count = 0.0
-        pred = []
-        datapoint = {}
-        for x, y in zip(data["X"], data["y"]):
-            log_probs = self(autograd.Variable(x)).view(1,-1)
-            err_prob += np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]])
-            err += round(np.exp(log_probs.data.numpy()[0][1 - y.numpy()[0]]))
-            pred.append(np.exp(log_probs.data.numpy()[0][1]))
-            count += 1.0
-            
-            if (not datapoint.keys() or nft):
-                datapoint = {"X": x.view(1, -1),
-                             "y": y.view(1, -1)}                
-            else:
-                datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
-                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
-
-            
-            self.train(datapoint, sg_epoch)
-        
-        pred0 = torch.from_numpy(logit(np.array(pred)).flatten())
-        data["y_pred_am"] = pred0.type(torch.FloatTensor)
-        err /= count
-        err_prob /= count
-        print("classification error : {0}, \
-        MSE error : {1}".format(round(100*err), -1))
-        print("*********************")
-        
-        
-    
-
-class MLPRegressor(nn.Module): 
-
-    def __init__(self, input_size, output_size, nhid):
-        super(MLPRegressor, self).__init__()
-        self.fc1 = nn.Linear(input_size, nhid)
-        self.fc2 = nn.Linear(nhid, output_size)
-        self.loss_function = nn.MSELoss()
-        return
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = F.tanh(x)
-        x = self.fc2(x)
-        return x
-    
-    def train(self, data, N_epoch):
-        
-        for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y_pred_hrm"]):
+            for x, y in zip(data["X"], data["y_joint"]):
         
                 self.zero_grad()
         
@@ -106,9 +44,6 @@ class MLPRegressor(nn.Module):
         return
                 
     def test (self, data, sg_epoch, N_trials, nft = True, name = None):
-        # validate approx_models - will come back to this for resource rationality
-        err_cl = 0 
-        err_mse = 0
         count = 0.0
         pred = []
         datapoint = {}
@@ -117,7 +52,74 @@ class MLPRegressor(nn.Module):
         
         for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
             yval = self(autograd.Variable(x)).view(1,-1)
-            pred.append(yval.data.numpy()[0][0])
+            pred.append(yval.data.numpy()[0])
+            count += 1.0
+            
+            if (not datapoint.keys() or nft):
+                datapoint = {"X": x.view(1, -1),
+                             "y": y.view(1, -1),
+                             "y_pred_hrm": y_p.view(1, -1)}                
+            else:
+                datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
+                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
+                datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+
+            if (not count%N_trials):
+                self = copy.deepcopy(orig)
+                datapoint = {}
+            else:
+                self.train(datapoint, sg_epoch)
+            
+        
+        pred0 = torch.from_numpy(np.exp(np.array(pred))).view(-1,2)
+        data["y_pred_am"] = pred0.type(torch.FloatTensor)
+
+        
+        return
+        
+
+
+class MLP_cont(nn.Module): 
+
+    def __init__(self, input_size, output_size, nhid, loss_function):
+        super(MLP_disc, self).__init__()
+        self.fc1 = nn.Linear(input_size, nhid)
+        self.fc2 = nn.Linear(nhid, output_size)
+        self.loss_function = loss_function
+        return
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = F.tanh(x)
+        x = self.fc2(x)
+        return x
+    
+    def train(self, data, N_epoch):
+        
+        for epoch in range(N_epoch):
+            for x, y in zip(data["X"], data["y_joint"]):
+        
+                self.zero_grad()
+        
+                target = autograd.Variable(y)
+                yval = self(autograd.Variable(x)).view(1,-1)
+        
+                loss = self.loss_function(yval, target)
+                loss.backward()
+                self.optimizer.step()
+        return
+                
+    def test (self, data, sg_epoch, N_trials, nft = True, name = None):
+
+        count = 0.0
+        pred = []
+        datapoint = {}
+        
+        orig = copy.deepcopy(self)
+        
+        for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
+            yval = self(autograd.Variable(x)).view(1,-1)
+            pred.append(yval.data.numpy()[0])
             count += 1.0
             
             if (not datapoint.keys() or nft):
@@ -135,19 +137,9 @@ class MLPRegressor(nn.Module):
             else:
                 self.train(datapoint, sg_epoch)
                 
-            py = inv_logit(yval.data.numpy())[0][0]
-            ty = 1 - y.numpy()[0]
-            err_cl += round(ty*py + (1-ty)*(1 -py)) 
-            err_mse += (y.numpy() - yval.data.numpy()[0][0])**2
             
-        
-        pred0 = torch.from_numpy(np.array(pred).flatten())
+        pred0 = torch.from_numpy(np.exp(np.array(pred))).view(-1,2)
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
-        err_cl /= count
-        err_mse /= count
-        print("classification error : {0}, \
-        MSE error : {1}".format(round(100*err_cl), err_mse))
-        print("*********************")
         
         return
         
@@ -171,19 +163,16 @@ class UrnRational():
     
     def pred_logprior(self, pri, N):
         # point estimate of posterior mu_p
-        pri *= N
-        n_in = (N + pri)*self.N_t/2.0
-        n_out = (N - pri)*self.N_t/2.0
-        alpha0 = n_in + self.alpha
-        beta0 = n_out + self.alpha
-        p0 = alpha0/(alpha0 + beta0)
-        #self.pr
+        p0 = pri
         return np.log(np.clip(np.array([1.0 - p0, p0]), 0.01, 0.99))
     
+    def log_joint(self, draw, lik, pri, N):
+        return self.pred_loglik(draw, lik) + self.pred_logprior(pri, N)
+        
     def pred_post(self, draw, lik, pri, N):
         # draw is 0 if col is one that is more un urn 0
         # lik if the prob of col 0 in urn 0
-        p = self.pred_loglik(draw, lik) + self.pred_logprior(pri, N)
+        p = self.log_joint(draw, lik, pri, N)
         return np.exp(p)/sum(np.exp(p))
     
     
@@ -226,18 +215,22 @@ class UrnRational():
         
         count = 0
         preds = []
+        ljs = []
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
             draw, lik, pri, N = x.numpy()
             urn = y.numpy()
-            preds.append(self.pred_post(draw, lik, pri, N)[1])
+            preds.append(self.pred_post(draw, lik, pri, N))
+            ljs.append(self.log_joint(draw, lik, pri, N))
             if not count%self.N_t:
                 self.update_params(pri, N, urn)
         
-        pred0 = torch.from_numpy(logit(np.array(preds))).view(-1,1)
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
+        lj0 = torch.from_numpy(np.exp(np.array(ljs))).view(-1,2)
+        data["y_joint"] = lj0.type(torch.FloatTensor)
         
         return data
     
@@ -247,18 +240,23 @@ class UrnRational():
         err_prob = 0
         count = 0.0
         preds = []
+        ljs = []
         
         for x, y in zip(data["X"], data["y"]):
             draw, lik, pri, N = x.numpy()
             urn = y.numpy()
-            pred = self.pred_post(draw, lik, pri, N)[1]
+            pred = self.pred_post(draw, lik, pri, N)
             preds.append(pred)
+            ljs.append(self.log_joint(draw, lik, pri, N))
             err_prob += self.pred_post(draw, lik, pri, N)[1 - urn]
             err += round(self.pred_post(draw, lik, pri, N)[1 - urn])
             count += 1.0
             
-        pred0 = torch.from_numpy(logit(np.array(preds))).view(-1,1)
+        pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        
+        lj0 = torch.from_numpy(np.exp(np.array(ljs))).view(-1,2)
+        data["y_joint"] = lj0.type(torch.FloatTensor)
         
         err /= count
         err_prob /= count
@@ -285,7 +283,12 @@ class ButtonRational():
         if len(self.mus) > 1 : self.v2 = np.var(np.array(self.mus))
         return
     
-    def pred_MAP(self, last, msf, N):
+    def log_joint(last, msf, N):
+        #*TODO*
+        return lj
+        
+    
+    def pred_post(self, last, msf, N):
         est_mu = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
             (self.v2 * N * self.N_t + self.s2)
         
@@ -297,11 +300,12 @@ class ButtonRational():
         
         count = 0
         preds = []
+        f_joint = []
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
             last, msf, N, _ = x.numpy()
-            preds.append(self.pred_MAP(last, msf, N))
+            preds.append(self.pred_post(last, msf, N))
             if not count%self.N_t:
                 self.update_params(msf)
         
@@ -320,7 +324,7 @@ class ButtonRational():
         for x, y in zip(data["X"], data["y"]):
             last, msf, N, _ = x.numpy()
             tmu = y.numpy()
-            pred = self.pred_MAP(last, msf, N)
+            pred = self.pred_post(last, msf, N)
             preds.append(pred)
             err_mse += (pred - tmu)**2
             count += 1.0

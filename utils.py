@@ -1,11 +1,15 @@
-import numpy as np
+import autograd.numpy as np
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import json
 
+def gaussian_entropy(std):
+    log_std = torch.log(std)
+    return 0.5 * len(std) * (1.0 + torch.log(2*np.pi)) + torch.sum(log_std)
 
 def inv_logit(p):
     return np.exp(p) / (1 + np.exp(p))
@@ -24,9 +28,8 @@ def plot_both(data, model, dset, expt, fac, N_epoch):
             count += 1
             ax = fig.add_subplot(1, 2, count)
             ax.plot(2*data[cond][dset]["X"].numpy()[:, 0] - 1, label = "likl/ball_drawn")
-            ax.plot(data[cond][dset]["X"].numpy()[:, 2], label = "pri/N_left")
-            ax.plot(inv_logit(data[cond][dset]["y_pred_" + model].numpy()) - 0.5, label = "prediction")
-            #print("\n", model, data[cond][dset]["y_pred" + model] - 0.5)
+            ax.plot(2*data[cond][dset]["X"].numpy()[:, 2] - 1, label = "pri")
+            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 1] - 0.5, label = "prediction")
             ax.plot(data[cond][dset]["y"].numpy() - 0.5, label = "true", linestyle = "--")
             ax.set_title('{0}'.format(cond))
             ax.set_ylim([-1.4, 1.4])
@@ -42,9 +45,7 @@ def plot_both(data, model, dset, expt, fac, N_epoch):
             ax = fig.add_subplot(1, 2, count)
             ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "likl/last_val")
             ax.plot(data[cond][dset]["X"].numpy()[:, 3], label = "pri/avg so far")
-            ax.plot(data[cond][dset]["y_pred_" + model].numpy(), label = "prediction")
-            #print("\n", model, data[cond][dset]["y_pred" + model] - 0.5)
-            #ax.plot(data[cond][dset]["y"].numpy(), label = "true", linestyle = "--")
+            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 1], label = "prediction")
             ax.set_title('{0}'.format(cond))
             #ax.set_ylim([-1.4, 1.4])
             ax.legend()
@@ -68,7 +69,8 @@ def updates(array, N_trials, expt, prob = False):
 
 
 def get_binned(fbin, tbin, lim):
-    num = 10
+    lim = 0.8
+    num = 12
     bins = np.linspace(0,lim,num = num) + np.random.uniform(-0.05, 0.05)
     ind = np.digitize(fbin, bins = bins)
     y = []
@@ -87,14 +89,24 @@ def get_binned(fbin, tbin, lim):
 
 def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     
-    inf_hrm = np.abs(updates(di["y_pred_hrm"].numpy()[:,0].flatten(), N_trials, expt))
-    inf_am = np.abs(updates(di["y_pred_am"].numpy().flatten(), N_trials, expt) )
+    if expt == 'disc':
+        inf_hrm = np.abs(inv_logit(di["y_pred_hrm"].numpy()[:,1].flatten()) - di["ps"])
+        inf_am = np.abs(inv_logit(di["y_pred_am"].numpy()[:,1].flatten()) - di['ps']) 
     
-    uninf_hrm = np.abs(updates(du["y_pred_hrm"].numpy()[:,0].flatten(), N_trials, expt))
-    uninf_am = np.abs(updates(du["y_pred_am"].numpy().flatten(), N_trials, expt))
-    
-    plt.scatter(inf_hrm, inf_am, alpha =0.1)
-    plt.scatter(uninf_hrm, uninf_am, alpha = 0.1)
+        uninf_hrm = np.abs(inv_logit(du["y_pred_hrm"].numpy()[:,1].flatten()) - du['ps']) 
+        uninf_am = np.abs(inv_logit(du["y_pred_am"].numpy()[:,1].flatten()) - du['ps']) 
+
+    elif expt == 'cont':
+
+        inf_hrm = np.abs(di["y_pred_hrm"].numpy()[:,0].flatten() - di["ps"])
+        inf_am = np.abs(di["y_pred_am"].numpy().flatten() - di['ps']) 
+        
+        uninf_hrm = np.abs(du["y_pred_hrm"].numpy()[:,0].flatten() - du['ps']) 
+        uninf_am = np.abs(du["y_pred_am"].numpy().flatten() - du['ps']) 
+        
+
+    #plt.scatter(inf_hrm, inf_am, alpha =0.1)
+    #plt.scatter(uninf_hrm, uninf_am, alpha = 0.1)
     
     lim = max(np.concatenate((inf_hrm, uninf_hrm)))
     if expt == 'disc':
@@ -118,4 +130,41 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     plt.legend()
     plt.show()
     
+    
+    
+    fn = 'data/preds_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.json'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt)
+    data = {'inf_rm_update': list(inf_hrm),
+            'uninf_rm_update': list(uninf_hrm),
+            'inf_am_update': list(inf_am),
+            'uninf_am_update': list(uninf_am),
+            'inf_prior' : list(di['ps']),
+            'uninf_prior' : list(du['ps'])
+    }
+
+    with open(fn, 'wb') as outfile:
+        json.dump(data, outfile)
+
+
+
     plt.savefig('figs/updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt))
+    
+    
+def plot_isocontours(ax, func, xlimits=[-20, 20], ylimits=[-20, 20], numticks=101):
+    x = np.linspace(*xlimits, num=numticks)
+    y = np.linspace(*ylimits, num=numticks)
+    X, Y = np.meshgrid(x, y)
+    zs = func(np.concatenate([np.atleast_2d(X.ravel()), np.atleast_2d(Y.ravel())]).T)
+    Z = zs.reshape(X.shape)
+    plt.contour(X, Y, Z, 30)
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+    
+def plot_1D(ax, func, xlimits=[-20, 20], numticks=101):
+    X = np.linspace(*xlimits, num=numticks)
+    Y = func(X)
+    plt.plot(X, Y)
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+    

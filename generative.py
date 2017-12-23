@@ -4,7 +4,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+from utils import gaussian_entropy
 import models
 reload(models)
 
@@ -13,10 +13,23 @@ torch.manual_seed(1)
 
 class Urn ():
     
+    
+    @staticmethod
+    def VI_loss_function(yval, target):
+        
+        q = torch.exp(yval)
+        ELBO = torch.sum(q * (torch.log(target) - q))
+    
+        return -ELBO
+    
+    
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLPRegressor(INPUT_SIZE, 1, nhid)
-        #return models.MLPClassifier(NUM_LABELS, INPUT_SIZE, nhid)
+        return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = Urn.VI_loss_function)
+    
+    
+        #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())
+        
 
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
@@ -67,9 +80,11 @@ class Urn ():
                 draws_b.append(draw)
                 
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
-            urns[i*N_trials : (i+1)*N_trials, 0] = urn_b
+            #urns[i*N_trials : (i+1)*N_trials, 0] = urn_b
+            urns[i*N_trials : (i+1)*N_trials, 0] = np.zeros(N_trials)
             liks[i*N_trials : (i+1)*N_trials, 0] = l * np.ones(N_trials)
-            pris[i*N_trials : (i+1)*N_trials, 0] = pri_b
+            pris[i*N_trials : (i+1)*N_trials, 0] = p * np.ones(N_trials)
+            #pris[i*N_trials : (i+1)*N_trials, 0] = pri_b
             Ns[i*N_trials : (i+1)*N_trials, 0] = N_b
             
         
@@ -109,8 +124,29 @@ class Urn ():
 
 class Button ():
     
-    def get_approxmodel(self, _, INPUT_SIZE, nhid):
-        return models.MLPRegressor(INPUT_SIZE, 2, nhid)
+    
+    @staticmethod
+    def VI_loss_function(yval, target):
+        # Here the target is a lambda function
+        # yval are the params given
+        n_samp = 30
+        
+        D = len(yval)/2
+        means, std = yval[:D], yval[D:]
+        ELBO = gaussian_entropy(std)
+        
+        count = 0
+        while count < n_samp:
+            count +=1 
+            sample = torch.normal(means = means, std = std)
+            ELBO += target(sample)
+        
+        
+        return -ELBO
+    
+    
+    def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
+        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, Button.VI_loss_function)
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
         
