@@ -9,7 +9,8 @@ import json
 
 def gaussian_entropy(std):
     log_std = torch.log(std)
-    return 0.5 * len(std) * (1.0 + torch.log(torch.Tensor([2*np.pi]))) + torch.sum(log_std)
+    norm = autograd.Variable(torch.Tensor([2*np.pi]))
+    return 0.5 * len(std) * (1.0 + torch.log(norm)) + torch.sum(log_std)
 
 def inv_logit(p):
     return np.exp(p) / (1 + np.exp(p))

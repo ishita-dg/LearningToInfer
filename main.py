@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(66)
 
-N_epoch = 50
+N_epoch = 2
 sg_epoch = 0
     
-N_blocks = 20
-N_trials = 20
+N_blocks = 2
+N_trials = 2
 N_balls = 9
 testN_blocks = 200
 valN_blocks = 2

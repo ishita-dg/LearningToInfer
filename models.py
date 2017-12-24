@@ -330,6 +330,7 @@ class ButtonRational():
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        print("Here")
         
         data["y_joint"] = f_joints
         
