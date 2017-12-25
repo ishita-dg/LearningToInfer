@@ -12,16 +12,16 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(66)
 
-N_epoch = 2
+N_epoch = 50
 sg_epoch = 0
     
-N_blocks = 2
-N_trials = 2
+N_blocks = 20
+N_trials = 20
 N_balls = 9
-testN_blocks = 200
+testN_blocks = 3
 valN_blocks = 2
 
-fac = 4.0
+fac = 10.0
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
@@ -113,7 +113,7 @@ for expt in ["cont"]:
 
         # approx
         expts[expt]["am"][cond].optimizer = \
-            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
+            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.01)
         expts[expt]["am"][cond].train(d, N_epoch)
                 
         

@@ -5,7 +5,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from utils import gaussian_entropy
+from utils import gaussian_logpdf
 import models
 reload(models)
 
@@ -16,10 +16,15 @@ class Urn ():
     
     
     @staticmethod
-    def VI_loss_function(yval, target):
+    def VI_loss_function(yval, samples, target):
         
         q = torch.exp(yval)
-        ELBO = torch.sum(q * (torch.log(target) - q))
+        #ELBO_0 = torch.sum(q * (torch.log(target/q)))
+        
+        vals = torch.mm(samples, torch.log(target/q).view(-1,1))
+        ELBO = torch.mean(vals)
+        
+        #print("true vs approx", ELBO, ELBO_0)
     
         return -ELBO
     
@@ -125,41 +130,16 @@ class Urn ():
 
 class Button ():
     
-    
     @staticmethod
-    def VI_loss_function(yval, target):
+    def VI_loss_function(yval, samples, target):
         
         # Here the target is a lambda function for log joint
         # yval are the params given
-        n_samp = 30
         
-        D = int(yval.data.numpy().size/2.0)
-        #mean, std = autograd.Variable(yval.data[0,:D]), autograd.Variable(yval.data[0,-D:])
-                #mean, std = autograd.Variable(temp[0,:D].reshape(1, -1)), autograd.Variable(tempyval[0,-D:].reshape(1, -1))
-        mean, logstd = yval[0,:D].view(1, -1), yval[0,-D:].view(1, -1)
+        logq = gaussian_logpdf(yval, samples)
+        logp = target(samples)
         
-        std = torch.exp(logstd)
-
-        ELBO = gaussian_entropy(std)
-        
-        # dists not available in python 2 version
-        #q = dists.Normal(mean, std)
-        #samples = q.sample_n(n_samp)
-        #ELBO += torch.mean(target(samples))
-        
-        crossterm = 0
-        count = 0
-        while count < n_samp:
-            count +=1 
-            sample = torch.normal(means = mean, std = std)
-            ELBO += target(sample)
-            crossterm += target(sample)        
-        
-        #samples = np.random.normal(mean.data.numpy()[0][0], std.data.numpy()[0], n_samp)
-        #samples = autograd.Variable(torch.Tensor(samples))
-        #crossterm = target(samples)
-        ELBO += torch.mean(crossterm)
-        
+        ELBO = torch.mean((logp - logq))
         return -ELBO
     
     
@@ -238,6 +218,7 @@ class Button ():
             #priors = np.random.normal(m0, vl, N_blocks)
         #else:
             #raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
+            
 
         return priors, None
     

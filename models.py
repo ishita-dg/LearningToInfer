@@ -29,6 +29,12 @@ class MLP_disc(nn.Module):
         x = F.log_softmax(x)
         return x
     
+    def get_samples(self, x):
+        n_samp = 300
+        mult = np.exp(x.data.numpy())[0]
+        samples = np.random.multinomial(1, mult, n_samp)
+        return torch.from_numpy(samples).type(torch.FloatTensor)
+
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
@@ -36,10 +42,12 @@ class MLP_disc(nn.Module):
         
                 self.zero_grad()
         
-                target = autograd.Variable(y)
+                target = autograd.Variable(y, requires_grad = False)
                 yval = self(autograd.Variable(x)).view(1,-1)
+                
+                samples = autograd.Variable(self.get_samples(yval), requires_grad = False)
         
-                loss = self.loss_function(yval, target)
+                loss = self.loss_function(yval, samples, target)
                 loss.backward()
                 self.optimizer.step()
         return
@@ -95,6 +103,14 @@ class MLP_cont(nn.Module):
         x = self.fc2(x)
         return x
     
+    def get_samples(self, x):
+        vals = x.data.numpy()
+        n_samp = 30
+        #D = len(x)
+        #mu, logsig = x[:D], x[-D:]
+        samples = np.random.normal(vals[0,0], np.exp(vals[0,1]), n_samp)
+        return torch.from_numpy(samples).type(torch.FloatTensor)
+    
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
@@ -107,8 +123,10 @@ class MLP_cont(nn.Module):
                 else:
                     target = y
                 yval = self(autograd.Variable(x)).view(1,-1)
-        
-                loss = self.loss_function(yval, target)
+                
+                samples = autograd.Variable(self.get_samples(yval), requires_grad = False)
+
+                loss = self.loss_function(yval, samples, target)
                 loss.backward()
                 self.optimizer.step()
         return
@@ -330,7 +348,6 @@ class ButtonRational():
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
-        print("Here")
         
         data["y_joint"] = f_joints
         
