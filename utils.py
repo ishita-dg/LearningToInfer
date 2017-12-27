@@ -7,6 +7,13 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import json
 
+def gaussian_logpdf(yval, samples):
+    #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
+    mean, std = yval[0,0], yval[0,1]
+    lprob = -(((samples - mean)/std)**2 + torch.log(2*np.pi*std**2))/2
+    return lprob.view(1, -1)
+
+
 def gaussian_entropy(std):
     log_std = torch.log(std)
     norm = autograd.Variable(torch.Tensor([2*np.pi]))
@@ -45,8 +52,8 @@ def plot_both(data, model, dset, expt, fac, N_epoch):
             count += 1
             ax = fig.add_subplot(1, 2, count)
             ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "likl/last_val")
-            ax.plot(data[cond][dset]["X"].numpy()[:, 3], label = "pri/avg so far")
-            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 1], label = "prediction")
+            ax.plot(data[cond][dset]["X"].numpy()[:, 1], label = "pri/avg so far")
+            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 0], label = "prediction")
             ax.set_title('{0}'.format(cond))
             #ax.set_ylim([-1.4, 1.4])
             ax.legend()
