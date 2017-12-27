@@ -19,13 +19,12 @@ class Urn ():
     def VI_loss_function(yval, samples, target):
         
         q = torch.exp(yval)
-        #ELBO_0 = torch.sum(q * (torch.log(target/q)))
         
-        vals = torch.mm(samples, torch.log(target/q).view(-1,1))
-        ELBO = torch.mean(vals)
-        
-        #print("true vs approx", ELBO, ELBO_0)
+        vals0 = torch.mm(samples, (torch.log(q) * torch.log(target)).view(-1,1))
+        vals1 = torch.mm(samples, (torch.log(q) * torch.log(q)).view(-1,1))
     
+        ELBO = torch.mean(vals0 - vals1/2)
+        
         return -ELBO
     
     
@@ -139,7 +138,7 @@ class Button ():
         logq = gaussian_logpdf(yval, samples)
         logp = target(samples)
         
-        ELBO = torch.mean((logp - logq))
+        ELBO = torch.mean(logq*(logp - logq/2))
         return -ELBO
     
     
@@ -197,28 +196,11 @@ class Button ():
     
     def assign_PL(self, N_balls, N_blocks, fac):
         
-        # Ignore N_balls.
-        # fac here will be < 0 -> high variance
-        # > 0 -> low variance
-        # in keeping with the beta prior in Urns
-        
         m0 = 0
         
         v = np.sqrt(fac)
         
-        priors = np.random.normal(m0, v, N_blocks)
-
-        #vl = 1.0/np.sqrt(fac)
-        #vh = 1.0*np.sqrt(fac)
-        
-    
-        #if fac > 1.0:
-            
-        #elif fac < 1.0:
-            #priors = np.random.normal(m0, vl, N_blocks)
-        #else:
-            #raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
-            
+        priors = np.random.normal(m0, v, N_blocks)            
 
         return priors, None
     

@@ -9,7 +9,7 @@ import json
 
 def gaussian_logpdf(yval, samples):
     #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
-    mean, std = yval[0,0], yval[0,1]
+    mean, std = yval[0,0], torch.exp(yval[0,1])
     lprob = -(((samples - mean)/std)**2 + torch.log(2*np.pi*std**2))/2
     return lprob.view(1, -1)
 
@@ -107,10 +107,10 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     elif expt == 'cont':
 
         inf_hrm = np.abs(di["y_pred_hrm"].numpy()[:,0].flatten() - di["ps"])
-        inf_am = np.abs(di["y_pred_am"].numpy().flatten() - di['ps']) 
+        inf_am = np.abs(di["y_pred_am"].numpy()[:,0].flatten() - di['ps']) 
         
         uninf_hrm = np.abs(du["y_pred_hrm"].numpy()[:,0].flatten() - du['ps']) 
-        uninf_am = np.abs(du["y_pred_am"].numpy().flatten() - du['ps']) 
+        uninf_am = np.abs(du["y_pred_am"].numpy()[:,0].flatten() - du['ps']) 
         
 
     #plt.scatter(inf_hrm, inf_am, alpha =0.1)

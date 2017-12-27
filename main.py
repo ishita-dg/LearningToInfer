@@ -18,10 +18,10 @@ sg_epoch = 0
 N_blocks = 20
 N_trials = 20
 N_balls = 9
-testN_blocks = 3
+testN_blocks = 500
 valN_blocks = 2
 
-fac = 10.0
+fac = 4.0
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
@@ -37,7 +37,7 @@ expts["cont"]["expt_type"] = generative.Button()
 
 # running only for disc expt (Urn)   
 
-for expt in ["cont"]:
+for expt in ["disc"]:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}

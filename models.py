@@ -30,7 +30,7 @@ class MLP_disc(nn.Module):
         return x
     
     def get_samples(self, x):
-        n_samp = 300
+        n_samp = 30
         mult = np.exp(x.data.numpy())[0]
         samples = np.random.multinomial(1, mult, n_samp)
         return torch.from_numpy(samples).type(torch.FloatTensor)
@@ -43,7 +43,8 @@ class MLP_disc(nn.Module):
                 self.zero_grad()
         
                 target = autograd.Variable(y, requires_grad = False)
-                yval = self(autograd.Variable(x)).view(1,-1)
+                xvar = autograd.Variable(x)
+                yval = self(xvar).view(1,-1)
                 
                 samples = autograd.Variable(self.get_samples(yval), requires_grad = False)
         
@@ -108,7 +109,8 @@ class MLP_cont(nn.Module):
         n_samp = 30
         #D = len(x)
         #mu, logsig = x[:D], x[-D:]
-        samples = np.random.normal(vals[0,0], np.exp(vals[0,1]), n_samp)
+        std = np.exp(np.clip(vals[0,1], -20, 20))
+        samples = np.random.normal(vals[0,0], std, n_samp)
         return torch.from_numpy(samples).type(torch.FloatTensor)
     
     def train(self, data, N_epoch):
