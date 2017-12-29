@@ -130,6 +130,36 @@ class Urn ():
 class Button ():
     
     @staticmethod
+    def E_VI_loss_function(yval, target):
+        
+        qmu, qsig = yval[0,0], torch.exp(yval[0,1])
+        pmu, psig = target[0], torch.exp(target[1])
+        
+        weight = autograd.Variable(torch.Tensor([10,1]), requires_grad = False)
+        
+        
+        #KL = torch.log(psig/qsig) +\
+            #(qsig**2 + (qmu - pmu)**2)/(2*psig**2) -\
+            #1/2
+        
+        #revKL = torch.log(qsig/psig) +\
+            #(psig**2 + (pmu - qmu)**2)/(2*qsig**2) -\
+            #1/2
+        
+        #sqerr_m = torch.sqrt(torch.mean((qmu - pmu)**2))
+        sqerr = torch.sqrt(torch.mean(weight*(yval.view(-1) - target)**2))
+    
+
+        #if np.isnan(sqerr.data.numpy()): 
+            #print("************", factors, yval.view(-1), target)
+        #if np.isnan(revKL.data.numpy()): 
+            #print("************", qmu, pmu, qsig, psig, "************")
+            #print("************", KL, torch.log(psig/qsig), (qsig**2 + (qmu - pmu)**2)/(2*psig**2), "************") 
+            #raise ValueError ("nananana")
+   
+        return sqerr
+    
+    @staticmethod
     def VI_loss_function(yval, samples, target):
         
         # Here the target is a lambda function for log joint
@@ -143,7 +173,7 @@ class Button ():
     
     
     def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
-        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, Button.VI_loss_function)
+        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, Button.E_VI_loss_function)
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
         

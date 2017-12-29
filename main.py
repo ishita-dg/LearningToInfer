@@ -11,33 +11,36 @@ import utils
 import matplotlib.pyplot as plt
 
 torch.manual_seed(66)
+np.random.seed(66)
 
+# for Urn N_epoch = 50
+# for Button N_epoch = 100
 N_epoch = 50
 sg_epoch = 0
     
 N_blocks = 20
 N_trials = 20
 N_balls = 9
-testN_blocks = 500
-valN_blocks = 2
+testN_blocks = 200
+valN_blocks = 5
 
-fac = 4.0
+fac = 10.0
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
 
 INPUT_SIZE = 4
-nhid = 2
+# for Urn nhid = 2
+# for Button nhid = 5
+nhid = 5
     
 expts = {"disc": {},
          "cont": {}}
 
 expts["disc"]["expt_type"] = generative.Urn()
-expts["cont"]["expt_type"] = generative.Button()
+expts["cont"]["expt_type"] = generative.Button()   
 
-# running only for disc expt (Urn)   
-
-for expt in ["disc"]:
+for expt in ["cont"]:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}
@@ -113,7 +116,7 @@ for expt in ["disc"]:
 
         # approx
         expts[expt]["am"][cond].optimizer = \
-            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.01)
+            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
         expts[expt]["am"][cond].train(d, N_epoch)
                 
         
@@ -141,7 +144,7 @@ for expt in ["disc"]:
         
     
                     
-    if testN_blocks < 4:
+    if testN_blocks < 6:
         utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
         utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
         

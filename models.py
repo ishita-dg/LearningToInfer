@@ -94,41 +94,50 @@ class MLP_cont(nn.Module):
     def __init__(self, input_size, output_size, nhid, loss_function):
         super(MLP_cont, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
+        #self.fc_opt = nn.Linear(nhid, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
+        #self.loss_function = nn.MSELoss()
         return
 
     def forward(self, x):
         x = self.fc1(x)
         x = F.tanh(x)
-        x = self.fc2(x)
+        #x = self.fc_opt(x)
+        #x = F.tanh(x)
+        x = self.fc2(x)        
         return x
     
     def get_samples(self, x):
         vals = x.data.numpy()
-        n_samp = 30
+        n_samp = 1
         #D = len(x)
         #mu, logsig = x[:D], x[-D:]
         std = np.exp(np.clip(vals[0,1], -20, 20))
+        #print("Sampling", vals[0,0], std, n_samp)
         samples = np.random.normal(vals[0,0], std, n_samp)
         return torch.from_numpy(samples).type(torch.FloatTensor)
     
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y_joint"]):
+            for x, y in zip(data["X"], data["y_pred_hrm"]):
         
                 self.zero_grad()
         
-                if type(y) is np.ndarray:
+                if isinstance(y, torch.FloatTensor):
                     target = autograd.Variable(y)
                 else:
                     target = y
                 yval = self(autograd.Variable(x)).view(1,-1)
                 
+                #print(x, yval)
+                
                 samples = autograd.Variable(self.get_samples(yval), requires_grad = False)
 
-                loss = self.loss_function(yval, samples, target)
+                #loss = self.loss_function(yval, samples, target)
+                loss = self.loss_function(yval, target)
+                #print("loss", loss)
                 loss.backward()
                 self.optimizer.step()
         return
@@ -162,7 +171,7 @@ class MLP_cont(nn.Module):
                 self.train(datapoint, sg_epoch)
                 
             
-        pred0 = torch.from_numpy(np.exp(np.array(pred))).view(-1,2)
+        pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
         
         return
@@ -332,7 +341,7 @@ class ButtonRational():
         
         est_sig = 1.0/\
             np.sqrt(N * self.N_t/self.s2 + 1.0/self.v2)
-        return np.array([est_mu, est_sig])
+        return np.array([est_mu, np.log(est_sig)])
     
     def train(self, data):
         
