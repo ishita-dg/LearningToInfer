@@ -10,6 +10,7 @@ import json
 def gaussian_logpdf(yval, samples):
     #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
     mean, std = yval[0,0], torch.exp(yval[0,1])
+    std = 1.0 * std/std
     lprob = -(((samples - mean)/std)**2 + torch.log(2*np.pi*std**2))/2
     return lprob.view(1, -1)
 
@@ -77,7 +78,7 @@ def updates(array, N_trials, expt, prob = False):
 
 
 def get_binned(fbin, tbin, lim):
-    lim = 0.8
+    #lim = 0.8
     num = 12
     bins = np.linspace(0,lim,num = num) + np.random.uniform(-0.05, 0.05)
     ind = np.digitize(fbin, bins = bins)
@@ -85,7 +86,7 @@ def get_binned(fbin, tbin, lim):
     se = []
     x = []
     
-    for i in np.arange(50):
+    for i in np.arange(num):
         i += 1
         rvals = tbin[ind == i]
         if rvals.size:
@@ -105,12 +106,19 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
         uninf_am = np.abs(inv_logit(du["y_pred_am"].numpy()[:,1].flatten()) - du['ps']) 
 
     elif expt == 'cont':
-
-        inf_hrm = np.abs(di["y_pred_hrm"].numpy()[:,0].flatten() - di["ps"])
-        inf_am = np.abs(di["y_pred_am"].numpy()[:,0].flatten() - di['ps']) 
         
-        uninf_hrm = np.abs(du["y_pred_hrm"].numpy()[:,0].flatten() - du['ps']) 
-        uninf_am = np.abs(du["y_pred_am"].numpy()[:,0].flatten() - du['ps']) 
+        inf_hrm = np.abs(di["y_pred_hrm"].numpy()[:,0].flatten())
+        inf_am = np.abs(di["y_pred_am"].numpy()[:,0].flatten()) 
+        
+        uninf_hrm = np.abs(du["y_pred_hrm"].numpy()[:,0].flatten()) 
+        uninf_am = np.abs(du["y_pred_am"].numpy()[:,0].flatten()) 
+        
+
+        #inf_hrm = np.abs(di["y_pred_hrm"].numpy()[:,0].flatten() - di["ps"])
+        #inf_am = np.abs(di["y_pred_am"].numpy()[:,0].flatten() - di['ps']) 
+        
+        #uninf_hrm = np.abs(du["y_pred_hrm"].numpy()[:,0].flatten() - du['ps']) 
+        #uninf_am = np.abs(du["y_pred_am"].numpy()[:,0].flatten() - du['ps']) 
         
 
     #plt.scatter(inf_hrm, inf_am, alpha =0.1)
@@ -119,6 +127,7 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     lim = max(np.concatenate((inf_hrm, uninf_hrm)))
     if expt == 'disc':
         lim = 1.0
+        
     
     ix, iy, ise = get_binned(fbin = inf_hrm, tbin = inf_am, lim = lim)
     ux, uy, use = get_binned(fbin = uninf_hrm, tbin = uninf_am, lim = lim)
@@ -138,6 +147,8 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     plt.legend()
     plt.show()
     
+    plt.savefig('figs/updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt))
+    
     
     
     fn = 'data/preds_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.json'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt)
@@ -148,13 +159,10 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
             'inf_prior' : list(di['ps']),
             'uninf_prior' : list(du['ps'])
     }
+    
+    #with open(fn, 'wb') as outfile:
+        #json.dump(data, outfile)
 
-    with open(fn, 'wb') as outfile:
-        json.dump(data, outfile)
-
-
-
-    plt.savefig('figs/updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt))
     
     
 def plot_isocontours(ax, func, xlimits=[-20, 20], ylimits=[-20, 20], numticks=101):

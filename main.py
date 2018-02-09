@@ -21,7 +21,7 @@ sg_epoch = 0
 N_blocks = 20
 N_trials = 20
 N_balls = 9
-testN_blocks = 200
+testN_blocks = 4
 valN_blocks = 5
 
 fac = 10.0
@@ -31,8 +31,8 @@ DIM = 1
 
 INPUT_SIZE = 4
 # for Urn nhid = 2
-# for Button nhid = 5
-nhid = 5
+# for Button nhid = 1/2
+nhid = 1
     
 expts = {"disc": {},
          "cont": {}}
@@ -116,7 +116,7 @@ for expt in ["cont"]:
 
         # approx
         expts[expt]["am"][cond].optimizer = \
-            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
+            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.01)
         expts[expt]["am"][cond].train(d, N_epoch)
                 
         

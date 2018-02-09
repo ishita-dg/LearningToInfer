@@ -24,7 +24,8 @@ class MLP_disc(nn.Module):
 
     def forward(self, x):
         x = self.fc1(x)
-        x = F.tanh(x)
+        #x = F.tanh(x)
+        x = F.relu(x)
         x = self.fc2(x)
         x = F.log_softmax(x)
         return x
@@ -102,7 +103,11 @@ class MLP_cont(nn.Module):
 
     def forward(self, x):
         x = self.fc1(x)
-        x = F.tanh(x)
+        x = F.relu(x)
+        # softmax and hardtnh learn nothing with mse, v little with log (kl+revkl)
+        # relu works well for MSE
+        #
+        # Optional second layer (also check comments in init)
         #x = self.fc_opt(x)
         #x = F.tanh(x)
         x = self.fc2(x)        
@@ -110,18 +115,20 @@ class MLP_cont(nn.Module):
     
     def get_samples(self, x):
         vals = x.data.numpy()
-        n_samp = 1
+        n_samp = 100
         #D = len(x)
         #mu, logsig = x[:D], x[-D:]
-        std = np.exp(np.clip(vals[0,1], -20, 20))
-        #print("Sampling", vals[0,0], std, n_samp)
+        #std = np.exp(np.clip(vals[0,1], -20, 20))
+        std = 1.0 * vals[0,0] / vals[0,0]
         samples = np.random.normal(vals[0,0], std, n_samp)
+        print("Sampling", vals[0,0], std, n_samp)
         return torch.from_numpy(samples).type(torch.FloatTensor)
     
     def train(self, data, N_epoch):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y_pred_hrm"]):
+            #for x, y in zip(data["X"], data["y_pred_hrm"]):
+            for x, y in zip(data["X"], data["y_joint"]):
         
                 self.zero_grad()
         
@@ -135,8 +142,8 @@ class MLP_cont(nn.Module):
                 
                 samples = autograd.Variable(self.get_samples(yval), requires_grad = False)
 
-                #loss = self.loss_function(yval, samples, target)
-                loss = self.loss_function(yval, target)
+                loss = self.loss_function(yval, samples, target)
+                #loss = self.loss_function(yval, target)
                 #print("loss", loss)
                 loss.backward()
                 self.optimizer.step()
