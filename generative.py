@@ -171,30 +171,55 @@ class Button ():
    
         return JS
     
+    #@staticmethod
+    #def VI_loss_function(yval, samples, target):
+        #'''
+        #Takes joint probability function as P input
+        #'''
+        
+        ## Here the target is a lambda function for log joint
+        ## yval are the params given
+        
+        #logq = gaussian_logpdf(yval, samples)
+        #logp = target(samples)
+        
+        #ELBO = torch.mean(logq*(logp - logq/2))
+        
+        ##print("yval, ", yval.data.numpy())
+        #print("samples", samples.data.numpy()[:3])
+        #print("logp", logp.data.numpy()[0][:3])
+        #print("logq", logq.data.numpy()[0][:3])
+        
+        #print("loss, ", ELBO.data.numpy())
+        #print("**************")
+        #return -ELBO
+    
     @staticmethod
     def VI_loss_function(yval, samples, target):
         '''
-        Takes joint probability function as P input
+        Takes prior and likl params as P input
         '''
         
         # Here the target is a lambda function for log joint
         # yval are the params given
         
         logq = gaussian_logpdf(yval, samples)
-        logp = target(samples)
+        prior = target[0,:].view(1,-1)
+        likl = target[1,:].view(1,-1)
+        logp = gaussian_logpdf(prior, samples) + gaussian_logpdf(likl, samples)
         
-        ELBO = torch.mean(logq*(logp - logq/2))
-        
+        #ELBO = torch.mean(logq*(logp - logq/2))
+
+        ELBO = torch.mean(logp - logq)
         #print("yval, ", yval.data.numpy())
-        print("samples", samples.data.numpy()[:3])
-        print("logp", logp.data.numpy()[0][:3])
-        print("logq", logq.data.numpy()[0][:3])
+        #print("prior and likle", prior.data.numpy(), likl.data.numpy())
+        #print("samples", samples.data.numpy()[:3])
+        #print("logp", logp.data.numpy()[0][:3])
+        #print("logq", logq.data.numpy()[0][:3])
         
-        print("loss, ", ELBO.data.numpy())
-        print("**************")
-        return -ELBO
-    
-    
+        #print("loss, ", ELBO.data.numpy())
+        #print("**************")
+        return -ELBO    
     
     
     def get_approxmodel(self, DIM, INPUT_SIZE, nhid):

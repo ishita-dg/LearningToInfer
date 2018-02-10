@@ -24,8 +24,8 @@ class MLP_disc(nn.Module):
 
     def forward(self, x):
         x = self.fc1(x)
-        #x = F.tanh(x)
-        x = F.relu(x)
+        x = F.tanh(x)
+        #x = F.relu(x)
         x = self.fc2(x)
         x = F.log_softmax(x)
         return x
@@ -121,7 +121,7 @@ class MLP_cont(nn.Module):
         #std = np.exp(np.clip(vals[0,1], -20, 20))
         std = 1.0 * vals[0,0] / vals[0,0]
         samples = np.random.normal(vals[0,0], std, n_samp)
-        print("Sampling", vals[0,0], std, n_samp)
+        #print("Sampling", vals[0,0], std, n_samp)
         return torch.from_numpy(samples).type(torch.FloatTensor)
     
     def train(self, data, N_epoch):
@@ -323,24 +323,36 @@ class ButtonRational():
         if len(self.mus) > 1 : self.v2 = np.var(np.array(self.mus))
         return
     
+    #def log_joint(self, last, msf, N):
+        #msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
+        #m = autograd.Variable(torch.Tensor([self.m])).view(1,-1)
+        #s2 = autograd.Variable(torch.Tensor([self.s2])).view(1,-1)
+        #v2 = autograd.Variable(torch.Tensor(np.array([self.v2]))).view(1,-1)
+                
+        #pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
+                                    #+ torch.log(2*np.pi*s2))/2.0
+        
+        #likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
+                                            #+ torch.log(2*np.pi*v2))/2.0
+        
+        ##likl = dists.Normal(msf, torch.sqrt(s2))
+        ##pri = dists.Normal(self.m, torch.sqrt(v2))
+        
+        #lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
+        #return lj_func
+    
     def log_joint(self, last, msf, N):
         msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
         m = autograd.Variable(torch.Tensor([self.m])).view(1,-1)
-        s2 = autograd.Variable(torch.Tensor([self.s2])).view(1,-1)
-        v2 = autograd.Variable(torch.Tensor(np.array([self.v2]))).view(1,-1)
-                
-        pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
-                                    + torch.log(2*np.pi*s2))/2.0
+        s2 = autograd.Variable(torch.Tensor([np.log(self.s2)])).view(1,-1)
+        v2 = autograd.Variable(torch.Tensor(np.array([np.log(self.v2)]))).view(1,-1)
         
-        likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
-                                            + torch.log(2*np.pi*v2))/2.0
-        
-        #likl = dists.Normal(msf, torch.sqrt(s2))
-        #pri = dists.Normal(self.m, torch.sqrt(v2))
-        
-        lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
-        return lj_func
-        
+        pr_vec = torch.cat((msf, s2/2), 0)
+        lik_vec = torch.cat((m, v2/2), 0)
+        lj_vec = torch.cat((pr_vec, lik_vec),1)
+             
+        return lj_vec    
+    
     
     def pred_post_MAP(self, last, msf, N):
         est_mu = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
