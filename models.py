@@ -115,7 +115,7 @@ class MLP_cont(nn.Module):
     
     def get_samples(self, x):
         vals = x.data.numpy()
-        n_samp = 100
+        n_samp = 10
         #D = len(x)
         #mu, logsig = x[:D], x[-D:]
         #std = np.exp(np.clip(vals[0,1], -20, 20))

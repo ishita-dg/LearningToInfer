@@ -26,7 +26,7 @@ def inv_logit(p):
 def logit(p):
     return np.log(p) - np.log(1 - p)
         
-def plot_both(data, model, dset, expt, fac, N_epoch):
+def plot_both(data, model, dset, expt, fac, N_epoch, show = False):
     
     count = 0
     
@@ -60,6 +60,7 @@ def plot_both(data, model, dset, expt, fac, N_epoch):
             ax.legend()
             
         plt.savefig('figs/{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
+        if (dset == 'test' and model == 'am'): plt.show()
         
     return
         

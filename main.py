@@ -21,7 +21,7 @@ sg_epoch = 0
 N_blocks = 20
 N_trials = 20
 N_balls = 9
-testN_blocks = 4
+testN_blocks = 100
 valN_blocks = 5
 
 fac = 10.0
@@ -31,7 +31,7 @@ DIM = 1
 
 INPUT_SIZE = 4
 # for Urn nhid = 2
-# for Button nhid = 1/2
+# for Button nhid = 1 or 2
 nhid = 1
     
 expts = {"disc": {},

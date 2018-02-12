@@ -134,6 +134,7 @@ class Button ():
         
         qmu, qsig = yval[0,0], torch.exp(yval[0,1])
         pmu, psig = target[0], torch.exp(target[1])
+        qsig = 1.0 * qsig/qsig
         
         weight = autograd.Variable(torch.Tensor([1,0]), requires_grad = False)
         
@@ -208,9 +209,8 @@ class Button ():
         likl = target[1,:].view(1,-1)
         logp = gaussian_logpdf(prior, samples) + gaussian_logpdf(likl, samples)
         
-        #ELBO = torch.mean(logq*(logp - logq/2))
+        ELBO = torch.sqrt(torch.mean(logq*(logp - logq/2)))
 
-        ELBO = torch.mean(logp - logq)
         #print("yval, ", yval.data.numpy())
         #print("prior and likle", prior.data.numpy(), likl.data.numpy())
         #print("samples", samples.data.numpy()[:3])
