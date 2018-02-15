@@ -12,16 +12,16 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(66)
 
-N_epoch = 2
+N_epoch = 50
 sg_epoch = 0
     
-N_blocks = 2
-N_trials = 2
+N_blocks = 20
+N_trials = 20
 N_balls = 9
-testN_blocks = 200
-valN_blocks = 2
+testN_blocks = 300
+valN_blocks = 5
 
-fac = 4.0
+fac = 10.0
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
@@ -35,9 +35,10 @@ expts = {"disc": {},
 expts["disc"]["expt_type"] = generative.Urn()
 expts["cont"]["expt_type"] = generative.Button()
 
-# running only for disc expt (Urn)   
+L2 = {"disc": {'inf_p': 0, 'uninf_p':0},
+      "cont": {'inf_p': 0.0000000000001, 'uninf_p':0.0}}
 
-for expt in ["disc"]:
+for expt in ["cont"]:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}
@@ -113,8 +114,17 @@ for expt in ["disc"]:
 
         # approx
         expts[expt]["am"][cond].optimizer = \
-            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
-        expts[expt]["am"][cond].train(d, N_epoch)
+                        optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1, weight_decay = L2[expt][cond])
+        
+        try:
+            utils.load_model(expts[expt]["am"],
+                             cond, N_epoch, sg_epoch, 
+                             round(fac), N_blocks, N_trials, expt, prefix = '')
+        except IOError:
+            expts[expt]["am"][cond].train(d, N_epoch)
+            
+            utils.save_model(expts[expt]["am"], cond, N_epoch, sg_epoch, round(fac), 
+                             N_blocks, N_trials, expt, prefix = '')
                 
         
     for cond in expts[expt]["data"]:
@@ -136,21 +146,32 @@ for expt in ["disc"]:
         
         d = expts[expt]["data"][cond][dset]
         d = expts[expt]["hrm"][cond].test(d)
-
+        
+        
+        #try:
+            #utils.load_model(expts[expt]["am"],
+                             #cond, N_epoch, sg_epoch, 
+                             #round(fac), N_blocks, N_trials, expt, prefix = 'aftertest_')
+        #except IOError:
         d = expts[expt]["am"][cond].test(d, sg_epoch, N_trials)
+        utils.save_model(expts[expt]["am"], cond, N_epoch, sg_epoch, round(fac), 
+                         N_blocks, N_trials, expt, prefix = 'aftertest_')
+    
+        
+        
         
     
                     
-    if testN_blocks < 4:
-        utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
-        utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
-        
-        utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
-        utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
-        
+    #if testN_blocks < 7:
+    #utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
+    
+    utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+    utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
+    
         
 
-    else:
-        di = expts[expt]["data"]["inf_p"]['test']
-        du = expts[expt]["data"]["uninf_p"]['test']
-        utils.plot_calibration(di, du, N_epoch, sg_epoch, round(fac), N_blocks, N_trials, expt)
+    #else:
+    di = expts[expt]["data"]["inf_p"]['test']
+    du = expts[expt]["data"]["uninf_p"]['test']
+    utils.plot_calibration(di, du, N_epoch, sg_epoch, round(fac), N_blocks, N_trials, expt)

@@ -29,29 +29,32 @@ class MLP_disc(nn.Module):
         x = F.log_softmax(x)
         return x
     
-    def train(self, data, N_epoch):
+    def train(self, data, N_epoch, verbose = True):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y_joint"]):
+            if not epoch%10 and verbose: print("Epoch number: ", epoch)            
+            for x, y in zip(data["X"], data["log_joint"]):
         
                 self.zero_grad()
         
                 target = autograd.Variable(y)
                 yval = self(autograd.Variable(x)).view(1,-1)
-        
+                
                 loss = self.loss_function(yval, target)
                 loss.backward()
                 self.optimizer.step()
+        
         return
-                
+    
     def test (self, data, sg_epoch, N_trials, nft = True, name = None):
+
         count = 0.0
         pred = []
         datapoint = {}
         
         orig = copy.deepcopy(self)
         
-        for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
+        for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
             yval = self(autograd.Variable(x)).view(1,-1)
             pred.append(yval.data.numpy()[0])
             count += 1.0
@@ -59,24 +62,26 @@ class MLP_disc(nn.Module):
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y": y.view(1, -1),
-                             "y_pred_hrm": y_p.view(1, -1)}                
+                             "y_pred_hrm": y_p.view(1, -1),
+                             "log_joint": lj.view(1,-1)}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
                 datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
                 datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+                datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1, -1)), 0)
 
             if (not count%N_trials):
                 self = copy.deepcopy(orig)
                 datapoint = {}
             else:
-                self.train(datapoint, sg_epoch)
+                self.train(datapoint, sg_epoch, verbose = False)
+                
             
-        
-        pred0 = torch.from_numpy(np.exp(np.array(pred))).view(-1,2)
+        pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
-
         
         return
+        
         
 
 
@@ -85,30 +90,36 @@ class MLP_cont(nn.Module):
     def __init__(self, input_size, output_size, nhid, loss_function):
         super(MLP_cont, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
+        #self.fc_opt = nn.Linear(nhid, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
+        self.rewards = []
         return
 
     def forward(self, x):
         x = self.fc1(x)
         x = F.tanh(x)
+       
         x = self.fc2(x)
         return x
     
-    def train(self, data, N_epoch):
+    def train(self, data, N_epoch, verbose = True):
         
         for epoch in range(N_epoch):
-            for x, y in zip(data["X"], data["y_joint"]):
+            if not epoch%10 and verbose: print("Epoch number: ", epoch)
+            #for x, y in zip(data["X"], data["y_pred_hrm"]):
+            for x, y in zip(data["X"], data["log_joint"]):    
         
                 self.zero_grad()
         
-                if type(y) is np.ndarray:
-                    target = autograd.Variable(y)
-                else:
-                    target = y
+                #if type(y) is np.ndarray:
+                    #target = autograd.Variable(y)
+                #else:
+                    #target = y
+                #target = autograd.Variable(y)
                 yval = self(autograd.Variable(x)).view(1,-1)
         
-                loss = self.loss_function(yval, target)
+                loss = self.loss_function(yval, y)
                 loss.backward()
                 self.optimizer.step()
         return
@@ -121,7 +132,7 @@ class MLP_cont(nn.Module):
         
         orig = copy.deepcopy(self)
         
-        for x, y, y_p in zip(data["X"], data["y"], data["y_pred_hrm"]):
+        for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
             yval = self(autograd.Variable(x)).view(1,-1)
             pred.append(yval.data.numpy()[0])
             count += 1.0
@@ -129,20 +140,22 @@ class MLP_cont(nn.Module):
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y": y.view(1, -1),
-                             "y_pred_hrm": y_p.view(1, -1)}                
+                             "y_pred_hrm": y_p.view(1, -1),
+                             "log_joint": lj.view(1,2,2)}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
                 datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
                 datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+                datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1,2,2)), 0)
 
             if (not count%N_trials):
                 self = copy.deepcopy(orig)
                 datapoint = {}
             else:
-                self.train(datapoint, sg_epoch)
+                self.train(datapoint, sg_epoch, verbose = False)
                 
             
-        pred0 = torch.from_numpy(np.exp(np.array(pred))).view(-1,2)
+        pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
         
         return
@@ -233,8 +246,8 @@ class UrnRational():
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
-        lj0 = torch.from_numpy(np.exp(np.array(ljs))).view(-1,2)
-        data["y_joint"] = lj0.type(torch.FloatTensor)
+        lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
+        data["log_joint"] = lj0.type(torch.FloatTensor)
         
         return data
     
@@ -259,8 +272,8 @@ class UrnRational():
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
         
-        lj0 = torch.from_numpy(np.exp(np.array(ljs))).view(-1,2)
-        data["y_joint"] = lj0.type(torch.FloatTensor)
+        lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
+        data["log_joint"] = lj0.type(torch.FloatTensor)
         
         err /= count
         err_prob /= count
@@ -275,44 +288,56 @@ class UrnRational():
 class ButtonRational():
         
     def __init__(self, prior_fac, N_trials):
-        self.m = 0
-        self.s2 = 1**2
-        self.v2 = 10**2
+        self.pr_mu = 0
+        self.lik_var = 1.0**2
+        self.pr_var = 1.0**2
         self.N_t = N_trials
         self.mus = []
     
     def update_params(self, msf):
         # MLE for variance across blocks
         self.mus.append(msf)
-        if len(self.mus) > 1 : self.v2 = np.var(np.array(self.mus))
+        if len(self.mus) > 1 : self.pr_var = np.var(np.array(self.mus))
         return
     
     def log_joint(self, last, msf, N):
         msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
-        m = autograd.Variable(torch.Tensor([self.m])).view(1,-1)
-        s2 = autograd.Variable(torch.Tensor([self.s2])).view(1,-1)
-        v2 = autograd.Variable(torch.Tensor(np.array([self.v2]))).view(1,-1)
+        pr_mu = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
+        llik_var = autograd.Variable(torch.Tensor([np.log(self.lik_var)])).view(1,-1)
+        lpr_var = autograd.Variable(torch.Tensor(np.array([np.log(self.pr_var)]))).view(1,-1)
+        
+        pr_vec = torch.cat((pr_mu, lpr_var/2), 0).view(1,-1)
+        lik_vec = torch.cat((msf, llik_var/2), 0).view(1,-1)
+        lj_vec = torch.cat((pr_vec, lik_vec),0)
+             
+        return lj_vec        
+    
+    #def log_joint(self, last, msf, N):
+        #msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
+        #m = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
+        #s2 = autograd.Variable(torch.Tensor([self.lik_var])).view(1,-1)
+        #v2 = autograd.Variable(torch.Tensor(np.array([self.pr_var]))).view(1,-1)
                 
-        pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
-                                    + torch.log(2*np.pi*s2))/2.0
+        #pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
+                                    #+ torch.log(2*np.pi*s2))/2.0
         
-        likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
-                                            + torch.log(2*np.pi*v2))/2.0
+        #likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
+                                            #+ torch.log(2*np.pi*v2))/2.0
         
-        #likl = dists.Normal(msf, torch.sqrt(s2))
-        #pri = dists.Normal(self.m, torch.sqrt(v2))
+        ##likl = dists.Normal(msf, torch.sqrt(s2))
+        ##pri = dists.Normal(self.pr_mu, torch.sqrt(v2))
         
-        lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
-        return lj_func
+        #lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
+        #return lj_func
         
     
     def pred_post_MAP(self, last, msf, N):
-        est_mu = (self.s2*self.m + self.v2*(msf * N * self.N_t)) / \
-            (self.v2 * N * self.N_t + self.s2)
+        est_mu = (self.lik_var*self.pr_mu + self.pr_var*(msf * N * self.N_t)) / \
+            (self.pr_var * N * self.N_t + self.lik_var)
         
         est_sig = 1.0/\
-            np.sqrt(N * self.N_t/self.s2 + 1.0/self.v2)
-        return np.array([est_mu, est_sig])
+            np.sqrt(N * self.N_t/self.lik_var + 1.0/self.pr_var)
+        return np.array([est_mu, np.log(est_sig)])
     
     def train(self, data):
         
@@ -329,10 +354,9 @@ class ButtonRational():
                 self.update_params(msf)
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
-        print("Here")
+        data["y_pred_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
         
-        data["y_joint"] = f_joints
+        data["log_joint"] = f_joints
         
         return data
     
@@ -341,17 +365,21 @@ class ButtonRational():
         err_mse = 0 
         count = 0.0
         preds = []
+        f_joints = []
         
         for x, y in zip(data["X"], data["y"]):
             last, msf, N, _ = x.numpy()
             tmu = y.numpy()
             pred = self.pred_post_MAP(last, msf, N)
             preds.append(pred)
+            f_joints.append(self.log_joint(last, msf, N))
             err_mse += (pred - tmu)**2
             count += 1.0
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_pred_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
+        
+        data["log_joint"] = f_joints
         
         err_mse /= count
         print("classification error : {0}, \

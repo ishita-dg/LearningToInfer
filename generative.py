@@ -7,6 +7,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from utils import gaussian_logpdf
 import models
+from torch.distributions import Categorical
+from torch.distributions import Normal
 reload(models)
 
 torch.manual_seed(1)
@@ -14,20 +16,41 @@ torch.manual_seed(1)
 
 class Urn ():
     
+    @staticmethod
+    def E_VI_loss_function(yval, target):
+        p = torch.exp(target)/torch.sum(torch.exp(target))
+        q = torch.exp(yval)
+        
+        KL = torch.mm(torch.log(q) - torch.log(p), q.view(-1,1))
+            
+        return KL
+
     
     @staticmethod
     def VI_loss_function(yval, target):
-        nsamps = 30
-        ELBO = 0
-        q = torch.exp(yval)
-        #ELBO_0 = torch.sum(q * (torch.log(target/q)))
-        samples = torch.multinomial(q, nsamps, replacement = True)
-        for s in samples[0,:]:
-            print(target, yval, s, "*********")
-            ELBO += torch.log(target[0]/yval[0,0])
-        #print("true vs approx", ELBO, ELBO_0)
+        nsamps = 50
+        ELBOs = []
+        logq = yval.view(1,-1)
+        logp = target.view(1,-1)
+        #logp = torch.log(torch.exp(target)/torch.sum(torch.exp(target)).view(1,-1))
+        
+        count = 0
+        dist_q = Categorical(torch.exp(logq))
+        while count < nsamps:
+            s = dist_q.sample().type(torch.LongTensor)            
+            #ELBO = logp.index_select(1,s)
+            ELBO = logq.index_select(1,s) * (logp.index_select(1,s) - logq.index_select(1,s)/2)
+            #print(p.data.numpy() - q.data.numpy(),s.data.numpy(),ELBO.data.numpy())
+            ELBOs.append(ELBO)
+            count += 1
+            
+        
+        qentropy = 0
+        #qentropy = torch.sum(torch.exp(logq) * logq)
+        loss = -(torch.mean(torch.cat(ELBOs)) - qentropy)
+            
     
-        return -ELBO
+        return loss
     
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
@@ -132,16 +155,61 @@ class Urn ():
 class Button ():
     
     @staticmethod
-    def VI_loss_function(yval, samples, target):
+    def E_VI_loss_function(yval, target):
+        # Exact KL divergence
+        # target are the exact posteriors
         
-        # Here the target is a lambda function for log joint
+        qmu, qlsd = yval.view(-1,1)
+        qlsd = 0.0 * qlsd / qlsd
+        pmu, plsd = target.view(-1,1)
+    
+        
+        qsig, psig = (torch.exp(qlsd), torch.exp(plsd))
+
+        #KL = torch.log(psig/qsig) + (qsig**2 + (qmu - pmu)**2)/(2*psig**2) - 1/2
+        KL = (qmu - pmu)**2
+        
+    
+        return KL    
+    
+    @staticmethod
+    def VI_loss_function(yval, target):
+        nsamps = 20
+        # Here the target are the prior and likl params
         # yval are the params given
+        qmu, qlsd = yval.view(-1)
+        qlsd = 0.0 * torch.exp(qlsd) / torch.exp(qlsd)
+
+        prmu, prlsd = target[0,:].view(-1)
+        likmu, liklsd = target[1,:].view(-1)  
+                
+        dist_q = Normal(qmu, torch.exp(qlsd))
+        dist_pr = Normal(prmu, torch.exp(prlsd))
+        dist_lik = Normal(likmu, torch.exp(liklsd))
         
-        logq = gaussian_logpdf(yval, samples)
-        logp = target(samples)
+        count = 0
+        ELBOs = []
+        while count < nsamps:
+            s = dist_q.sample()
+            #ELBO = dist_lik.log_prob(s) + dist_pr.log_prob(s)
+            ELBO = dist_q.log_prob(s) * (dist_lik.log_prob(s) + dist_pr.log_prob(s) - dist_q.log_prob(s)/2)
+            ELBOs.append(ELBO)
+            count += 1
+            
+            
+        qentropy = 0
+        #qentropy = 0.5 + 0.5 * torch.log(2 * np.pi) + torch.log(self.scale)
+        qentropy = qlsd
+            
+        loss = -torch.log((torch.mean(torch.cat(ELBOs)) + qentropy))
         
-        ELBO = torch.mean((logp - logq))
-        return -ELBO
+        #print(torch.mean(torch.cat(ELBOs)).data.numpy(), qentropy.data.numpy(), "***")
+        
+        if np.isnan(loss.data.numpy()): 
+            raise ValueError ("Loss is NaN")
+        
+    
+        return loss
     
     
     def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
@@ -153,7 +221,7 @@ class Button ():
         only ps are there, ls are None
         """
         
-        s = 1
+        lik_sd = 1
         
         last = np.empty(shape = (N_trials*N_blocks, 1))
         m_so_far = np.empty(shape = (N_trials*N_blocks, 1))
@@ -165,7 +233,7 @@ class Button ():
         
         for i, p in enumerate(ps):
             
-            vals = np.random.normal(p, s, N_trials)
+            vals = np.random.normal(p, lik_sd, N_trials)
             prvs = vals.copy()
             prvs[1:] = prvs[:-1]
             prvs[0] = 0
@@ -197,29 +265,11 @@ class Button ():
     
     
     def assign_PL(self, N_balls, N_blocks, fac):
+        pr_mu = 0
         
-        # Ignore N_balls.
-        # fac here will be < 0 -> high variance
-        # > 0 -> low variance
-        # in keeping with the beta prior in Urns
+        pr_sd = np.sqrt(fac)
         
-        m0 = 0
-        
-        v = np.sqrt(fac)
-        
-        priors = np.random.normal(m0, v, N_blocks)
-
-        #vl = 1.0/np.sqrt(fac)
-        #vh = 1.0*np.sqrt(fac)
-        
-    
-        #if fac > 1.0:
-            
-        #elif fac < 1.0:
-            #priors = np.random.normal(m0, vl, N_blocks)
-        #else:
-            #raise ValueError ("Cannot choose between high inf and low inf if fac = 1!")
-            
+        priors = np.random.normal(pr_mu, pr_sd, N_blocks)
 
         return priors, None
     
