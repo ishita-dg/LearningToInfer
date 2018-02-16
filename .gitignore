@@ -5,3 +5,4 @@
 .DS_Store?
 ._*
 *.ipynb_checkpoints*
+*xtra_*

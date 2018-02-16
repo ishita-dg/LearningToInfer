@@ -5,7 +5,8 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from utils import gaussian_logpdf
+from utils import def_npgaussian_lp
+from utils import def_npgaussian_gradlog
 import models
 from torch.distributions import Categorical
 from torch.distributions import Normal
@@ -177,6 +178,7 @@ class Button ():
         nsamps = 20
         # Here the target are the prior and likl params
         # yval are the params given
+        # Works only without sigma?
         qmu, qlsd = yval.view(-1)
         qlsd = 0.0 * torch.exp(qlsd) / torch.exp(qlsd)
 
@@ -211,9 +213,44 @@ class Button ():
     
         return loss
     
+    @staticmethod
+    def VI_loss_function_grad(yval, target):
+        nsamps = 100
+        yval = yval.view(-1).data.numpy()
+        target = target.view(2,-1).data.numpy()
+
+        qmu, qlsd = yval
+                
+        dist_q = def_npgaussian_lp(yval)
+        dist_pr = def_npgaussian_lp(target[0,:])
+        dist_lik = def_npgaussian_lp(target[1,:])
+        gradq = def_npgaussian_gradlog(yval)
+        
+        #print(qmu, qlsd)
+        
+        count = 0
+        while count < nsamps:
+            s = np.random.normal(qmu, np.exp(qlsd))
+            #ELBO = dist_lik.log_prob(s) + dist_pr.log_prob(s)
+            val = gradq(s) * (dist_lik(s) + dist_pr(s) - dist_q(s))
+            if count == 0 :
+                ELBO_grad = val
+            else:
+                ELBO_grad += val
+            count += 1
+            
+            
+        
+        #print(torch.mean(torch.cat(ELBOs)).data.numpy(), qentropy.data.numpy(), "***")
+        
+        grad = ELBO_grad/count
+        #print(grad)
+    
+        return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
+    
     
     def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
-        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, Button.VI_loss_function)
+        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, None, Button.VI_loss_function_grad)
     
     def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
         

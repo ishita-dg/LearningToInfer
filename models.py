@@ -55,9 +55,7 @@ class MLP_disc(nn.Module):
         orig = copy.deepcopy(self)
         
         for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
-            yval = self(autograd.Variable(x)).view(1,-1)
-            pred.append(yval.data.numpy()[0])
-            count += 1.0
+            if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
             
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
@@ -76,6 +74,11 @@ class MLP_disc(nn.Module):
             else:
                 self.train(datapoint, sg_epoch, verbose = False)
                 
+            yval = self(autograd.Variable(x)).view(1,-1)
+            pred.append(np.exp(yval.data.numpy())[0])
+            count += 1.0
+            
+                
             
         pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
         data["y_pred_am"] = pred0.type(torch.FloatTensor)
@@ -87,12 +90,13 @@ class MLP_disc(nn.Module):
 
 class MLP_cont(nn.Module): 
 
-    def __init__(self, input_size, output_size, nhid, loss_function):
+    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
         super(MLP_cont, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
         #self.fc_opt = nn.Linear(nhid, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
+        self.loss_function_grad = loss_function_grad
         self.rewards = []
         return
 
@@ -103,23 +107,30 @@ class MLP_cont(nn.Module):
         x = self.fc2(x)
         return x
     
+    def def_newgrad(self, yval, target):
+        y = self.loss_function_grad(yval, target)
+        self.newgrad = lambda x : y
+        
     def train(self, data, N_epoch, verbose = True):
         
         for epoch in range(N_epoch):
             if not epoch%10 and verbose: print("Epoch number: ", epoch)
             #for x, y in zip(data["X"], data["y_pred_hrm"]):
-            for x, y in zip(data["X"], data["log_joint"]):    
-        
+            for x, y in zip(data["X"], data["log_joint"]):  
+                
                 self.zero_grad()
-        
-                #if type(y) is np.ndarray:
-                    #target = autograd.Variable(y)
-                #else:
-                    #target = y
-                #target = autograd.Variable(y)
+                
                 yval = self(autograd.Variable(x)).view(1,-1)
         
-                loss = self.loss_function(yval, y)
+                if self.loss_function is not None:
+                    loss = self.loss_function(yval, y)
+                    self.newgrad = lambda x : x
+                    
+                elif self.loss_function_grad is not None:
+                    loss = nn.MSELoss()(yval, y.view(1,-1)[0,:2])
+                    self.def_newgrad(yval, y)
+                
+                yval.register_hook(self.newgrad)
                 loss.backward()
                 self.optimizer.step()
         return
@@ -133,8 +144,8 @@ class MLP_cont(nn.Module):
         orig = copy.deepcopy(self)
         
         for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
-            yval = self(autograd.Variable(x)).view(1,-1)
-            pred.append(yval.data.numpy()[0])
+            
+            if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
             count += 1.0
             
             if (not datapoint.keys() or nft):
@@ -153,6 +164,10 @@ class MLP_cont(nn.Module):
                 datapoint = {}
             else:
                 self.train(datapoint, sg_epoch, verbose = False)
+                
+            yval = self(autograd.Variable(x)).view(1,-1)
+            pred.append(yval.data.numpy()[0])
+            
                 
             
         pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
@@ -373,7 +388,7 @@ class ButtonRational():
             pred = self.pred_post_MAP(last, msf, N)
             preds.append(pred)
             f_joints.append(self.log_joint(last, msf, N))
-            err_mse += (pred - tmu)**2
+            err_mse += (pred - tmu)**2 / tmu**2
             count += 1.0
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)

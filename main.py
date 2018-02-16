@@ -10,16 +10,16 @@ import utils
 
 import matplotlib.pyplot as plt
 
-torch.manual_seed(66)
+torch.manual_seed(60)
 
-N_epoch = 50
+N_epoch = 30
 sg_epoch = 0
     
 N_blocks = 20
 N_trials = 20
 N_balls = 9
-testN_blocks = 300
-valN_blocks = 5
+testN_blocks = 600
+valN_blocks = 2
 
 fac = 10.0
 prior_fac = 1
@@ -27,7 +27,7 @@ NUM_LABELS = 2
 DIM = 1
 
 INPUT_SIZE = 4
-nhid = 2
+nhid = 1
     
 expts = {"disc": {},
          "cont": {}}
@@ -36,9 +36,9 @@ expts["disc"]["expt_type"] = generative.Urn()
 expts["cont"]["expt_type"] = generative.Button()
 
 L2 = {"disc": {'inf_p': 0, 'uninf_p':0},
-      "cont": {'inf_p': 0.0000000000001, 'uninf_p':0.0}}
+      "cont": {'inf_p': 0.0, 'uninf_p':0.0}}
 
-for expt in ["cont"]:
+for expt in ['cont']:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}
@@ -114,12 +114,12 @@ for expt in ["cont"]:
 
         # approx
         expts[expt]["am"][cond].optimizer = \
-                        optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1, weight_decay = L2[expt][cond])
+                        optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.01, weight_decay = L2[expt][cond])
         
         try:
             utils.load_model(expts[expt]["am"],
                              cond, N_epoch, sg_epoch, 
-                             round(fac), N_blocks, N_trials, expt, prefix = '')
+                             round(fac), N_blocks, N_trials, expt, prefix = 'aftertest_')
         except IOError:
             expts[expt]["am"][cond].train(d, N_epoch)
             
@@ -127,7 +127,8 @@ for expt in ["cont"]:
                              N_blocks, N_trials, expt, prefix = '')
                 
         
-    for cond in expts[expt]["data"]:
+    #for cond in expts[expt]["data"]:
+    
         
         
         expts[expt]["am"][cond].optimizer = \
@@ -137,7 +138,10 @@ for expt in ["cont"]:
         print(cond, "Val")
         dset = "val"
         d = expts[expt]["data"][cond][dset]
+        print("Hierarchical rational model gives: ")
         d = expts[expt]["hrm"][cond].test(d)
+        
+        print("Approximate model gives: ")
 
         d = expts[expt]["am"][cond].test(d, sg_epoch, N_trials)
         
@@ -145,6 +149,7 @@ for expt in ["cont"]:
         dset = "test"
         
         d = expts[expt]["data"][cond][dset]
+        print("Hierarchical rational model gives: ")
         d = expts[expt]["hrm"][cond].test(d)
         
         
@@ -153,6 +158,7 @@ for expt in ["cont"]:
                              #cond, N_epoch, sg_epoch, 
                              #round(fac), N_blocks, N_trials, expt, prefix = 'aftertest_')
         #except IOError:
+        print("Approximate model gives: ")
         d = expts[expt]["am"][cond].test(d, sg_epoch, N_trials)
         utils.save_model(expts[expt]["am"], cond, N_epoch, sg_epoch, round(fac), 
                          N_blocks, N_trials, expt, prefix = 'aftertest_')
@@ -166,8 +172,8 @@ for expt in ["cont"]:
     #utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
     #utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
     
-    utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
-    utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
     
         
 

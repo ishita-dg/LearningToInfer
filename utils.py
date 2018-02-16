@@ -24,12 +24,21 @@ class DecimalEncoder(json.JSONEncoder):
         #return json.JSONEncoder.default(self, obj)
     
     
-def gaussian_logpdf(yval, samples):
+def def_npgaussian_lp(yval):
     #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
-    mean, std = yval[0,0], torch.exp(yval[0,1])
-    std = 1.0 * std/std
-    lprob = -(((samples - mean)/std)**2 + torch.log(2*np.pi*std**2))/2
-    return lprob.view(1, -1)
+    mean, std = yval[0], np.exp(yval[1])
+    glp = lambda x : -(((x - mean)/std)**2 + np.log(2*np.pi*std**2))/2
+    return glp
+
+def def_npgaussian_gradlog(yval):
+    #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
+    mean, std = yval[0], np.exp(yval[1])
+    mgrad = lambda x : - (x-mean)/(std**2)
+    lsdgrad = lambda x : - ((x-mean)/std)**2 + 1.0
+    #lsdgrad = lambda x : 0.0
+    glp = lambda x : np.array([mgrad(x), lsdgrad(x)])
+    return glp
+
 
 
 def gaussian_entropy(std):
@@ -49,34 +58,43 @@ def plot_both(data, model, dset, expt, fac, N_epoch, show = False):
     
     if expt == 'disc' :
     
-        fig = plt.figure(figsize=(16,8))
+        fig = plt.figure(figsize=(12,12))
         for cond in data:
             count += 1
-            ax = fig.add_subplot(1, 2, count)
-            ax.plot(2*data[cond][dset]["X"].numpy()[:, 0] - 1, label = "likl/ball_drawn")
-            ax.plot(2*data[cond][dset]["X"].numpy()[:, 2] - 1, label = "pri")
-            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 1] - 0.5, label = "prediction")
-            ax.plot(data[cond][dset]["y"].numpy() - 0.5, label = "true", linestyle = "--")
-            ax.set_title('{0}'.format(cond))
-            ax.set_ylim([-1.4, 1.4])
-            ax.legend()
-            
-        plt.savefig('figs/{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
-    
-    elif expt == 'cont':
-        
-        fig = plt.figure(figsize=(16,8))
-        for cond in data:
-            count += 1
-            ax = fig.add_subplot(1, 2, count)
-            ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "likl/last_val")
-            ax.plot(data[cond][dset]["X"].numpy()[:, 1], label = "pri/avg so far")
-            ax.plot(data[cond][dset]["y_pred_" + model].numpy()[:, 0], label = "prediction")
-            ax.set_title('{0}'.format(cond))
+            ax = fig.add_subplot(2,1, count)
+            ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "Likelihood", linestyle = ":")
+            ax.plot(data[cond][dset]["X"].numpy()[:, 2], label = "Prior", linestyle = ":")
+            ax.plot(data[cond][dset]["y_pred_hrm"].numpy()[:, 1], linewidth = 2.0, label = "True Posterior")
+            ax.plot(data[cond][dset]["y_pred_am"].numpy()[:, 1], linewidth = 2.0, label = "Predicted Posterior")
+            #ax.plot(data[cond][dset]["y"].numpy() - 0.5, label = "true", linestyle = "--")
+            if cond == 'inf_p':
+                ax.set_title('Condition: Informative prior')
+            else:
+                ax.set_title('Condition: Uninformative prior')
             #ax.set_ylim([-1.4, 1.4])
             ax.legend()
             
-        plt.savefig('figs/{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
+        plt.savefig('figs/Combined_{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
+    
+    elif expt == 'cont':
+        
+        fig = plt.figure(figsize=(12,12))
+        for cond in data:
+            count += 1
+            ax = fig.add_subplot(2,1, count)
+            #ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "Likelihood", linestyle = ":")
+            ax.plot(data[cond][dset]["X"].numpy()[:, 1], label = "Likelihood", linestyle = ":")
+            ax.plot(np.zeros_like(data[cond][dset]["X"].numpy()[:, 1]), label = "Prior", linestyle = ":")
+            ax.plot(data[cond][dset]["y_pred_hrm"].data.numpy()[:, 0], linewidth = 2.0, label = "True Posterior")
+            ax.plot(data[cond][dset]["y_pred_am"].numpy()[:, 0], linewidth = 2.0, label = "Predicted Posterior")
+            if cond == 'inf_p':
+                ax.set_title('Condition: Informative prior')
+            else:
+                ax.set_title('Condition: Uninformative prior')
+            ax.set_ylim([-6, 6])
+            ax.legend()
+            
+        plt.savefig('figs/Combined_{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
         #if (dset == 'test' and model == 'am'): plt.show()
         
     return
@@ -184,20 +202,22 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
 
     
 def save_model(models, cond, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, prefix = ''):
-    fn = './data/{7}model_{5}_{6}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch, 
+    fn = './data/{7}model_{5}_{6}_epoch{0}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch,
                                                                             fac, N_blocks, N_trials, expt, cond, prefix)
     
     torch.save(models[cond].state_dict(), fn)
+    print("Model Saved, {0}".format(fn))
     #with open(fn, 'wb') as handle:
         #pickle.dump(models[cond], handle)
     
     return
     
 def load_model(models, cond, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, prefix = ''):
-    fn = './data/{7}model_{5}_{6}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch, 
+    fn = './data/{7}model_{5}_{6}_epoch{0}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch, 
                                                                             fac, N_blocks, N_trials, expt, cond, prefix)
     
     models[cond].load_state_dict(torch.load(fn))
+    print("Model Loaded, {0}".format(fn))
     return
 
     
