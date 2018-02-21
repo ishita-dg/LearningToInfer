@@ -1,0 +1,8 @@
+#!/bin/bash
+# Basic range in for loop
+for value in {201..230}
+do
+echo $value
+python main.py $value
+done
+echo All done

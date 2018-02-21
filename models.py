@@ -292,9 +292,9 @@ class UrnRational():
         
         err /= count
         err_prob /= count
-        print("classification error : {0}, \
-        MSE error : {1}".format(round(100*err), -1))
-        print("*********************")
+        #print("classification error : {0}, \
+        #MSE error : {1}".format(round(100*err), -1))
+        #print("*********************")
 
         return data
         
@@ -304,22 +304,27 @@ class ButtonRational():
         
     def __init__(self, prior_fac, N_trials):
         self.pr_mu = 0
-        self.lik_var = 1.0**2
-        self.pr_var = 1.0**2
-        self.N_t = N_trials
+        self.lik_var = 5.0**2
+        self.pr_var = prior_fac
+        self.N_t = 1.0
         self.mus = []
     
-    def update_params(self, msf):
+    def update_params(self, msf, block_n, block_vals):
         # MLE for variance across blocks
-        self.mus.append(msf)
-        if len(self.mus) > 1 : self.pr_var = np.var(np.array(self.mus))
+        #self.mus.append(msf)
+        #if len(self.mus) > 1 : self.pr_var = np.var(np.array(self.mus))
+        #self.lik_var += (np.var(np.array(block_vals)) - self.lik_var)/block_n
         return
     
     def log_joint(self, last, msf, N):
         msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
         pr_mu = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
-        llik_var = autograd.Variable(torch.Tensor([np.log(self.lik_var)])).view(1,-1)
-        lpr_var = autograd.Variable(torch.Tensor(np.array([np.log(self.pr_var)]))).view(1,-1)
+        llik_var = autograd.Variable(
+            torch.Tensor(np.array([np.log(self.lik_var/(N*self.N_t))]))).view(1,-1)
+        lpr_var = autograd.Variable(
+            torch.Tensor(np.array([np.log(self.pr_var)]))).view(1,-1)
+        
+        #print(self.lik_var, N*self.N_t, llik_var.data.numpy())
         
         pr_vec = torch.cat((pr_mu, lpr_var/2), 0).view(1,-1)
         lik_vec = torch.cat((msf, llik_var/2), 0).view(1,-1)
@@ -359,14 +364,17 @@ class ButtonRational():
         count = 0
         preds = []
         f_joints = []
+        block_vals = []
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
             last, msf, N, _ = x.numpy()
             preds.append(self.pred_post_MAP(last, msf, N))
             f_joints.append(self.log_joint(last, msf, N))
+            block_vals.append(last)
             if not count%self.N_t:
-                self.update_params(msf)
+                self.update_params(msf, count/self.N_t, block_vals)
+                block_vals = []
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_pred_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
@@ -397,9 +405,9 @@ class ButtonRational():
         data["log_joint"] = f_joints
         
         err_mse /= count
-        print("classification error : {0}, \
-        MSE error : {1}".format( -1, err_mse))
-        print("*********************")
+        #print("classification error : {0}, \
+        #MSE error : {1}".format( -1, err_mse))
+        #print("*********************")
          
         return data
             

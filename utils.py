@@ -62,8 +62,11 @@ def plot_both(data, model, dset, expt, fac, N_epoch, show = False):
         for cond in data:
             count += 1
             ax = fig.add_subplot(2,1, count)
-            ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "Likelihood", linestyle = ":")
-            ax.plot(data[cond][dset]["X"].numpy()[:, 2], label = "Prior", linestyle = ":")
+            lik = data[cond][dset]["X"].numpy()[:, 0] * data[cond][dset]["X"].numpy()[:, 1] +\
+                (1.0 - data[cond][dset]["X"].numpy()[:, 0]) * (1.0 - data[cond][dset]["X"].numpy()[:, 1])
+            #ax.plot(lik, label = "Likelihood", linestyle = ":")
+            ax.plot(data[cond][dset]["X"].numpy()[:, 0], label = "Data", linestyle = ":", linewidth = 2.0)
+            ax.plot(data[cond][dset]["X"].numpy()[:, 2], label = "Prior", linestyle = ":", linewidth = 2.0)
             ax.plot(data[cond][dset]["y_pred_hrm"].numpy()[:, 1], linewidth = 2.0, label = "True Posterior")
             ax.plot(data[cond][dset]["y_pred_am"].numpy()[:, 1], linewidth = 2.0, label = "Predicted Posterior")
             #ax.plot(data[cond][dset]["y"].numpy() - 0.5, label = "true", linestyle = "--")
@@ -91,7 +94,7 @@ def plot_both(data, model, dset, expt, fac, N_epoch, show = False):
                 ax.set_title('Condition: Informative prior')
             else:
                 ax.set_title('Condition: Uninformative prior')
-            ax.set_ylim([-6, 6])
+            #ax.set_ylim([-6, 6])
             ax.legend()
             
         plt.savefig('figs/Combined_{4}_{0}{1}_fac{2}epochs{3}.png'.format(model, dset,round(fac), N_epoch, expt))
@@ -115,7 +118,7 @@ def updates(array, N_trials, expt, prob = False):
 
 def get_binned(fbin, tbin, lim):
     #lim = 0.8
-    num = 12
+    num = 10
     bins = np.linspace(0,lim,num = num) + np.random.uniform(-0.05, 0.05)
     ind = np.digitize(fbin, bins = bins)
     y = []
@@ -132,7 +135,7 @@ def get_binned(fbin, tbin, lim):
     
     return (x, y, se)
 
-def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
+def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part = 0):
     
     if expt == 'disc':
         inf_hrm = np.abs(inv_logit(di["y_pred_hrm"].numpy()[:,1].flatten()) - di["ps"])
@@ -171,12 +174,16 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     fig = plt.figure()
 
     ax = fig.add_subplot(111)
-    ax.errorbar(ix, iy, ise, label = "low_dispersion")
-    ax.errorbar(ux, uy, use, label = "high_dispersion")
+    ax.errorbar(ix, iy, ise, label = "low dispersion")
+    ax.errorbar(ux, uy, use, label = "high dispersion")
+    #ax.scatter(inf_hrm, inf_am)
+    #ax.scatter(uninf_hrm, uninf_am)
+    
 
     ax.plot([0,lim], [0,lim], c = 'k')
     
-    #plt.ylim(0, lim)
+    #plt.ylim(0, 18)
+    #plt.xlim(0, 18)
     
     ax.set_title("Calibration for updates")
     ax.set_xlabel("rational model update")
@@ -184,11 +191,11 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt):
     ax.legend()
     #plt.show()
     
-    plt.savefig('figs/updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt))
+    plt.savefig('figs/part{6}_updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part))
     
     
     
-    fn = 'data/preds_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.json'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt)
+    fn = 'data/part{6}_preds_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.json'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part)
     data = {'inf_rm_update': [float(x) for x in inf_hrm],
             'uninf_rm_update': [float(x) for x in uninf_hrm],
             'inf_am_update': [float(x) for x in inf_am],

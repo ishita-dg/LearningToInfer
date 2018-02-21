@@ -137,7 +137,7 @@ class Urn ():
         
     
         alpha_p = beta_p = fac
-        priors = np.round(100*np.random.beta(alpha_p, beta_p, N_blocks))/100
+        priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
         priors = np.clip(priors, 0.1, 0.9)
         
         alpha_l = beta_l = 1.0/fac
@@ -175,7 +175,7 @@ class Button ():
     
     @staticmethod
     def VI_loss_function(yval, target):
-        nsamps = 20
+        nsamps = 100
         # Here the target are the prior and likl params
         # yval are the params given
         # Works only without sigma?
@@ -215,9 +215,10 @@ class Button ():
     
     @staticmethod
     def VI_loss_function_grad(yval, target):
-        nsamps = 100
+        nsamps = 50
         yval = yval.view(-1).data.numpy()
         target = target.view(2,-1).data.numpy()
+        
 
         qmu, qlsd = yval
                 
@@ -226,13 +227,14 @@ class Button ():
         dist_lik = def_npgaussian_lp(target[1,:])
         gradq = def_npgaussian_gradlog(yval)
         
-        #print(qmu, qlsd)
-        
         count = 0
         while count < nsamps:
             s = np.random.normal(qmu, np.exp(qlsd))
             #ELBO = dist_lik.log_prob(s) + dist_pr.log_prob(s)
-            val = gradq(s) * (dist_lik(s) + dist_pr(s) - dist_q(s))
+            if np.isinf(target[1,1]):
+                val = gradq(s) * (dist_pr(s) - dist_q(s))
+            else:
+                val = gradq(s) * (dist_lik(s) + dist_pr(s) - dist_q(s))
             if count == 0 :
                 ELBO_grad = val
             else:
@@ -258,7 +260,7 @@ class Button ():
         only ps are there, ls are None
         """
         
-        lik_sd = 1
+        lik_sd = 5
         
         last = np.empty(shape = (N_trials*N_blocks, 1))
         m_so_far = np.empty(shape = (N_trials*N_blocks, 1))
@@ -275,9 +277,10 @@ class Button ():
             prvs[1:] = prvs[:-1]
             prvs[0] = 0
             
-            N_b = (1.0*np.arange(N_trials))/N_trials
+            N_b = (1.0*np.arange(N_trials))
+            #N_b = (1.0*(np.arange(N_trials) + 1.0))/N_trials
             
-            msf = np.cumsum(vals)/(1.0*np.arange(N_trials) + 1)
+            msf = np.cumsum(vals)/(N_b + 1.0)
             msf[1:] = msf[:-1]
             msf[0] = 0
                 
