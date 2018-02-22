@@ -15,11 +15,12 @@ torch.manual_seed(1)
 
 class MLP_disc(nn.Module): 
 
-    def __init__(self, input_size, output_size, nhid, loss_function):
+    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
         super(MLP_disc, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
+        self.loss_function_grad = loss_function_grad
         return
 
     def forward(self, x):
@@ -28,6 +29,10 @@ class MLP_disc(nn.Module):
         x = self.fc2(x)
         x = F.log_softmax(x)
         return x
+    
+    def def_newgrad(self, yval, target):
+            y = self.loss_function_grad(yval, target)
+            self.newgrad = lambda x : y    
     
     def train(self, data, N_epoch, verbose = True):
         
@@ -39,8 +44,17 @@ class MLP_disc(nn.Module):
         
                 target = autograd.Variable(y)
                 yval = self(autograd.Variable(x)).view(1,-1)
+            
                 
-                loss = self.loss_function(yval, target)
+                if self.loss_function is not None:
+                    loss = self.loss_function(yval, target)
+                    self.newgrad = lambda x : x
+                    
+                elif self.loss_function_grad is not None:
+                    loss = nn.MSELoss()(yval, target.view(1,-1)[0,:2])
+                    self.def_newgrad(yval, target)
+                
+                yval.register_hook(self.newgrad)
                 loss.backward()
                 self.optimizer.step()
         
@@ -97,7 +111,6 @@ class MLP_cont(nn.Module):
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
         self.loss_function_grad = loss_function_grad
-        self.rewards = []
         return
 
     def forward(self, x):

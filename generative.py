@@ -54,9 +54,33 @@ class Urn ():
         return loss
     
     
+    @staticmethod
+    def VI_loss_function_grad(yval, target):
+        nsamps = 50
+        ELBOs = []
+        logq = yval.view(1,-1).data.numpy()
+        logp = target.view(1,-1).data.numpy()
+        q = np.exp(logq)
+        gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
+        
+        count = 0
+        ELBO_grad = 0
+        while count < nsamps:
+            s = np.reshape(np.random.multinomial(1, np.reshape(q, (-1))), (-1,1))
+            ELBO_grad += np.dot(gradq,s)*(np.dot(logp, s) - np.dot(logq, s))
+
+            count += 1
+            
+        
+        grad = ELBO_grad/count
+        #print(grad)
+    
+        return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
+       
+    
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = Urn.VI_loss_function)
+        return models.MLP_disc(INPUT_SIZE, 2, nhid, None, Urn.VI_loss_function_grad)
     
     
         #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())

@@ -13,26 +13,26 @@ import matplotlib.pyplot as plt
 import sys
 
 
-N_part = sys.argv[1]
-#N_part = 18
+#N_part = sys.argv[1]
+N_part = 1000
 
 print("********************")
 print("Running participant number ", N_part)
 
 torch.manual_seed(36)
 
-N_epoch = 50
+N_epoch = 30
 sg_epoch = 0
     
 N_blocks = 10
 N_trials = 10
 N_balls = 10
-testN_blocks = 4
+testN_blocks = 10
 valN_blocks = 4
 
 fac = 0.0
-fac1 = 144
-fac2 = 36
+fac1 = 10#144
+fac2 = 0.1#36
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
@@ -52,7 +52,7 @@ L2 = {"disc": {'inf_p': 0, 'uninf_p':0},
 lr = {"disc": {'inf_p': 0.05, 'uninf_p':0.05},
       "cont": {'inf_p': 0.05, 'uninf_p':0.01}}
 
-for expt in ['cont']:
+for expt in ['disc']:
     
     expts[expt]["data"] = {}
     expts[expt]["data"]["inf_p"] = {}
@@ -136,7 +136,7 @@ for expt in ['cont']:
         try:
             utils.load_model(expts[expt]["am"],
                              cond, N_epoch, sg_epoch, 
-                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'part' + str(N_part) +  '_')
+                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'randopart' + str(N_part) +  '_')
             #if cond == 'inf_p':
                 #print ("Training, ", expt, cond) 
                 #expts[expt]["am"][cond].train(d, N_epoch)
@@ -216,6 +216,6 @@ for expt in ['cont']:
         
 
     #else:
-    di = expts[expt]["data"]["inf_p"]['train']
-    du = expts[expt]["data"]["uninf_p"]['train']
+    di = expts[expt]["data"]["inf_p"]['test']
+    du = expts[expt]["data"]["uninf_p"]['test']
     utils.plot_calibration(di, du, N_epoch, sg_epoch, str(fac1) + str(fac2), N_blocks, N_trials, expt, N_part)
