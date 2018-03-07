@@ -24,11 +24,11 @@ torch.manual_seed(36)
 N_epoch = 30
 sg_epoch = 0
     
-N_blocks = 10
-N_trials = 10
+N_blocks = 100
+N_trials = 1
 N_balls = 10
-testN_blocks = 10
-valN_blocks = 4
+testN_blocks = 20
+valN_blocks = 20
 
 fac = 0.0
 fac1 = 10#144
@@ -136,7 +136,7 @@ for expt in ['disc']:
         try:
             utils.load_model(expts[expt]["am"],
                              cond, N_epoch, sg_epoch, 
-                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'randopart' + str(N_part) +  '_')
+                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'part' + str(N_part) +  '_')
             #if cond == 'inf_p':
                 #print ("Training, ", expt, cond) 
                 #expts[expt]["am"][cond].train(d, N_epoch)

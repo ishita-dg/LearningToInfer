@@ -232,16 +232,16 @@ class UrnRational():
     def update_params(self, pri, N, urn):
         
 
-        # Brute force MLE on point estimates of alpha
-        pri *= N
-        n_in = (N + pri)*self.N_t/2.0 + urn
-        self.mus.append(n_in*1.0)
+        ## Brute force MLE on point estimates of alpha
+        #pri *= N
+        #n_in = (N + pri)*self.N_t/2.0 + urn
+        #self.mus.append(n_in*1.0)
         
         
         
-        x = np.arange(0.0, 50.0, 0.01)
-        y = self.alpha_ll(x)
-        self.alpha = x[np.argmax(y)]
+        #x = np.arange(0.0, 50.0, 0.01)
+        #y = self.alpha_ll(x)
+        #self.alpha = x[np.argmax(y)]
         
         ## method of moments estimators from beta params
        
