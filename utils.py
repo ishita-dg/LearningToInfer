@@ -138,11 +138,11 @@ def get_binned(fbin, tbin, lim):
 def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part = 0):
     
     if expt == 'disc':
-        inf_hrm = np.abs(inv_logit(di["y_pred_hrm"].numpy()[:,1].flatten()) - di["ps"])
-        inf_am = np.abs(inv_logit(di["y_pred_am"].numpy()[:,1].flatten()) - di['ps']) 
+        inf_hrm = np.abs((di["y_pred_hrm"].numpy()[:,1].flatten()) - di["ps"])
+        inf_am = np.abs((di["y_pred_am"].numpy()[:,1].flatten()) - di['ps']) 
     
-        uninf_hrm = np.abs(inv_logit(du["y_pred_hrm"].numpy()[:,1].flatten()) - du['ps']) 
-        uninf_am = np.abs(inv_logit(du["y_pred_am"].numpy()[:,1].flatten()) - du['ps']) 
+        uninf_hrm = np.abs((du["y_pred_hrm"].numpy()[:,1].flatten()) - du['ps']) 
+        uninf_am = np.abs((du["y_pred_am"].numpy()[:,1].flatten()) - du['ps']) 
 
     elif expt == 'cont':
         

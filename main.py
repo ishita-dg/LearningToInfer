@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import sys
 
 
-#N_part = sys.argv[1]
-N_part = 1000
+N_part = sys.argv[1]
+#N_part = 1000
 
 print("********************")
 print("Running participant number ", N_part)
@@ -22,13 +22,13 @@ print("Running participant number ", N_part)
 torch.manual_seed(36)
 
 N_epoch = 30
-sg_epoch = 0
+sg_epoch = 30
     
 N_blocks = 100
 N_trials = 1
 N_balls = 10
-testN_blocks = 20
-valN_blocks = 20
+testN_blocks = 10
+valN_blocks = 10
 
 fac = 0.0
 fac1 = 10#144
@@ -123,6 +123,16 @@ for expt in ['disc']:
         
             
         # train models
+        
+        # test set with both val and test sets,
+        #expts[expt]["data"][cond]["test"]["X"],  expts[expt]["data"][cond]["test"]["y"] = \
+            #torch.stack((expts[expt]["data"][cond]["test"]["X"], expts[expt]["data"][cond]["val"]["X"]), dim = 0).view(-1,4),  \
+            #torch.stack((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]), dim = 0).view(-1,1)
+        
+        #expts[expt]['data'][cond]['test']['ps'], expts[expt]['data'][cond]['test']['ls'] = \
+            #np.concatenate((expts[expt]["data"][cond]["test"]["ps"], expts[expt]["data"][cond]["val"]["ps"])),  \
+            #np.concatenate((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]))
+            
 
         # Block model doesn't get trained
         # Hierarchical model trains it's prior over mu_p and mu_l
@@ -158,7 +168,7 @@ for expt in ['disc']:
         
         
         expts[expt]["am"][cond].optimizer = \
-            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.05)
+            optim.SGD(expts[expt]["am"][cond].parameters(), lr=0.1)
         
                 
         #print(cond, "Val")
@@ -210,8 +220,8 @@ for expt in ['disc']:
     #utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
     #utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
     
-    utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
-    utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
     
         
 
