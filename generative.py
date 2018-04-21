@@ -61,10 +61,11 @@ class Urn ():
         logq = yval.view(1,-1).data.numpy()
         logp = target.view(1,-1).data.numpy()
         q = np.exp(logq)
-        #gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
+        gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
         mu = np.exp(logq)[0,0]
-        gradlogq = np.array([[1.0/(mu - 1.0), 1/mu], [1.0/(1.0 - mu), -1.0/mu]])
+        #gradlogq = -np.array([[-mu, 1-mu], [mu-1, mu]])
         #print("gradlogq", mu, gradq)
+        gradlogq = gradq
         
         count = 0
         ELBO_grad = 0
