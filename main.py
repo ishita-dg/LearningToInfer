@@ -13,22 +13,22 @@ import matplotlib.pyplot as plt
 import sys
 import json
 
-N_part = sys.argv[1]
-#N_part = 301
+#N_part = sys.argv[1]
+N_part = 1000
 
 print("********************")
 print("Running participant number ", N_part)
 
 torch.manual_seed(36)
 
-N_epoch = 50
+N_epoch = 30
 sg_epoch = 0
     
 N_blocks = 100
 N_trials = 1
 N_balls = 10
-testN_blocks = 10
-valN_blocks = 10
+testN_blocks = 30
+valN_blocks = 30
 
 
 fac1 = 10#144
