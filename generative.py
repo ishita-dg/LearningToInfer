@@ -158,17 +158,34 @@ class Urn ():
     def assign_PL(self, N_balls, N_blocks, fac):
         
         # but we don't want all of one color ever
+        uninf = [4.0, 5.0, 5.0, 6.0]
+        inf = [1.0, 2.0, 2.0, 3.0, 7.0, 8.0, 8.0, 9.0]
         
-    
-        alpha_p = beta_p = fac
-        priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
-        priors = np.clip(priors, 0.1, 0.9)
-        
-        alpha_l = beta_l = 1.0/fac
-        likls = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
-        likls = np.clip(likls, 1, N_balls - 1)
+        if fac < 1.0:
+            priors = np.random.choice(inf, N_blocks)/10.0
+            likls = np.random.choice(uninf, N_blocks)            
+        else:
+            priors = np.random.choice(uninf, N_blocks)/10.0
+            likls = np.random.choice(inf, N_blocks)
+            
         
         return priors, likls
+    
+    
+    #def assign_PL(self, N_balls, N_blocks, fac):
+        
+        ## but we don't want all of one color ever
+        
+    
+        #alpha_p = beta_p = fac
+        #priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
+        #priors = np.clip(priors, 0.1, 0.9)
+        
+        #alpha_l = beta_l = 1.0/fac
+        #likls = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
+        #likls = np.clip(likls, 1, N_balls - 1)
+        
+        #return priors, likls
             
         
     

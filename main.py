@@ -11,18 +11,18 @@ import utils
 import matplotlib.pyplot as plt
 
 import sys
-
+import json
 
 N_part = sys.argv[1]
-#N_part = 1000
+#N_part = 301
 
 print("********************")
 print("Running participant number ", N_part)
 
 torch.manual_seed(36)
 
-N_epoch = 30
-sg_epoch = 30
+N_epoch = 50
+sg_epoch = 0
     
 N_blocks = 100
 N_trials = 1
@@ -30,9 +30,10 @@ N_balls = 10
 testN_blocks = 10
 valN_blocks = 10
 
-fac = 0.0
+
 fac1 = 10#144
 fac2 = 0.1#36
+fac = str(fac1) + str(fac2)
 prior_fac = 1
 NUM_LABELS = 2
 DIM = 1
@@ -125,13 +126,13 @@ for expt in ['disc']:
         # train models
         
         # test set with both val and test sets,
-        #expts[expt]["data"][cond]["test"]["X"],  expts[expt]["data"][cond]["test"]["y"] = \
-            #torch.stack((expts[expt]["data"][cond]["test"]["X"], expts[expt]["data"][cond]["val"]["X"]), dim = 0).view(-1,4),  \
-            #torch.stack((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]), dim = 0).view(-1,1)
+        expts[expt]["data"][cond]["test"]["X"],  expts[expt]["data"][cond]["test"]["y"] = \
+            torch.stack((expts[expt]["data"][cond]["test"]["X"], expts[expt]["data"][cond]["val"]["X"]), dim = 0).view(-1,4),  \
+            torch.stack((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]), dim = 0).view(-1,1)
         
-        #expts[expt]['data'][cond]['test']['ps'], expts[expt]['data'][cond]['test']['ls'] = \
-            #np.concatenate((expts[expt]["data"][cond]["test"]["ps"], expts[expt]["data"][cond]["val"]["ps"])),  \
-            #np.concatenate((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]))
+        expts[expt]['data'][cond]['test']['ps'], expts[expt]['data'][cond]['test']['ls'] = \
+            np.concatenate((expts[expt]["data"][cond]["test"]["ps"], expts[expt]["data"][cond]["val"]["ps"])),  \
+            np.concatenate((expts[expt]["data"][cond]["test"]["y"], expts[expt]["data"][cond]["val"]["y"]))
             
 
         # Block model doesn't get trained
@@ -146,7 +147,7 @@ for expt in ['disc']:
         try:
             utils.load_model(expts[expt]["am"],
                              cond, N_epoch, sg_epoch, 
-                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'part' + str(N_part) +  '_')
+                             str(fac1) + str(fac2), N_blocks, N_trials, expt, prefix = 'Exact_Expt/nhid'+str(nhid)+'_part' + str(N_part) +  '_')
             #if cond == 'inf_p':
                 #print ("Training, ", expt, cond) 
                 #expts[expt]["am"][cond].train(d, N_epoch)
@@ -160,7 +161,7 @@ for expt in ['disc']:
             expts[expt]["am"][cond].train(d, N_epoch)
             
             utils.save_model(expts[expt]["am"], cond, N_epoch, sg_epoch, str(fac1) + str(fac2), 
-                             N_blocks, N_trials, expt, prefix = 'part' + str(N_part) +  '_')
+                             N_blocks, N_trials, expt, prefix = 'Exact_Expt/nhid'+str(nhid)+'_part' + str(N_part) +  '_')
                 
         
     #for cond in expts[expt]["data"]:
@@ -220,12 +221,34 @@ for expt in ['disc']:
     #utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
     #utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
     
-    #utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
-    #utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
+    utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+    utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
     
         
 
     #else:
-    di = expts[expt]["data"]["inf_p"]['test']
-    du = expts[expt]["data"]["uninf_p"]['test']
-    utils.plot_calibration(di, du, N_epoch, sg_epoch, str(fac1) + str(fac2), N_blocks, N_trials, expt, N_part)
+    #di = expts[expt]["data"]["inf_p"]
+    #du = expts[expt]["data"]["uninf_p"]
+    #utils.plot_calibration(di, du, N_epoch, sg_epoch, str(fac1) + str(fac2), N_blocks, N_trials, expt, N_part, subset = 'test')
+        
+    d = expts[expt]["data"]
+    for s in ["test", "val", "train"]:
+        
+        fn = 'data/nhid{8}_part{6}_{7}preds_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.json'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part, s, nhid)
+        data = {"inf_p" : {},
+                "uninf_p": {}
+                }
+        for key in data:
+            data[key] = {
+                'hrm': [float(x) for x in d[key][s]["y_pred_hrm"].numpy()[:,1].flatten()],
+                'am': [float(x) for x in d[key][s]["y_pred_am"].numpy()[:,1].flatten()],
+                'ps': [float(x) for x in d[key][s]['ps']],
+                'ls': [float(x) for x in d[key][s]['ls']],
+            }
+            
+        with open(fn, 'wb') as outfile:
+            json.dump(data, outfile, cls=utils.DecimalEncoder)
+    
+        
+        
+        

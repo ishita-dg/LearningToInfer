@@ -1,6 +1,6 @@
 #!/bin/bash
 # Basic range in for loop
-for value in {301..400}
+for value in {301..340}
 do
 echo $value
 python main.py $value
