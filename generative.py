@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from utils import def_npgaussian_lp
 from utils import def_npgaussian_gradlog
+from utils import log_softmax
 import models
 from torch.distributions import Categorical
 from torch.distributions import Normal
@@ -58,7 +59,7 @@ class Urn ():
     def VI_loss_function_grad(yval, target):
         nsamps = 50
         ELBOs = []
-        logq = yval.view(1,-1).data.numpy()
+        logq = log_softmax(yval.view(1,-1).data.numpy())
         logp = target.view(1,-1).data.numpy()
         q = np.exp(logq)
         gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
@@ -70,14 +71,17 @@ class Urn ():
         count = 0
         ELBO_grad = 0
         while count < nsamps:
+            onehot = np.zeros(2)
             s = np.reshape(np.random.multinomial(1, np.reshape(q, (-1))), (-1,1))
-            ELBO_grad += np.dot(gradlogq,s)*(np.dot(logp, s) - np.dot(logq, s))
+            onehot[s[0][0]] = 1
+            ELBO_grad += np.reshape(q[0]-onehot, (1,-1))*(np.dot(logp, onehot) - np.dot(logq, onehot))
+            #ELBO_grad += np.dot(gradlogq,s)*(np.dot(logp, s) - np.dot(logq, s))
 
             count += 1
             
         
         grad = ELBO_grad/count
-        #print(grad)
+        #print(q, s, grad)
     
         return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
        

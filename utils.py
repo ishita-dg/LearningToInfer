@@ -46,6 +46,13 @@ def gaussian_entropy(std):
     norm = autograd.Variable(torch.Tensor([2*np.pi]))
     return 0.5 * len(std) * (1.0 + torch.log(norm)) + torch.sum(log_std)
 
+def log_softmax(p):
+    #print(p)
+    #print(np.exp(p))
+    #print(np.exp(p)/np.sum(np.exp(p)))
+    #print(np.log(np.exp(p)/np.sum(np.exp(p))))
+    return np.log(np.exp(p)/np.sum(np.exp(p)))
+
 def inv_logit(p):
     return np.exp(p) / (1 + np.exp(p))
 

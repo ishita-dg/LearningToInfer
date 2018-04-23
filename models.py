@@ -27,7 +27,7 @@ class MLP_disc(nn.Module):
         x = self.fc1(x)
         x = F.tanh(x)
         x = self.fc2(x)
-        x = F.log_softmax(x)
+        #x = F.log_softmax(x)
         return x
     
     def def_newgrad(self, yval, target):
@@ -51,7 +51,7 @@ class MLP_disc(nn.Module):
                     self.newgrad = lambda x : x
                     
                 elif self.loss_function_grad is not None:
-                    loss = nn.MSELoss()(yval, target.view(1,-1)[0,:2])
+                    loss = nn.MSELoss()(yval, target.view(1,-1))
                     self.def_newgrad(yval, target)
                 
                 yval.register_hook(self.newgrad)
@@ -89,6 +89,7 @@ class MLP_disc(nn.Module):
                 self.train(datapoint, sg_epoch, verbose = False)
                 
             yval = self(autograd.Variable(x)).view(1,-1)
+            yval = F.log_softmax(yval)
             pred.append(np.exp(yval.data.numpy())[0])
             count += 1.0
             

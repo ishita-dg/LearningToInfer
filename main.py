@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import sys
 import json
 
-#N_part = sys.argv[1]
-N_part = 1000
+N_part = sys.argv[1]
+#N_part = 1000
 
 print("********************")
 print("Running participant number ", N_part)
@@ -221,8 +221,8 @@ for expt in ['disc']:
     #utils.plot_both(expts[expt]["data"], 'hrm', "val", expt, fac, N_epoch)
     #utils.plot_both(expts[expt]["data"], 'hrm', "test", expt, fac, N_epoch)
     
-    utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
-    utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "val", expt, fac, N_epoch)
+    #utils.plot_both(expts[expt]["data"], 'am', "test", expt, fac, N_epoch)
     
         
 
