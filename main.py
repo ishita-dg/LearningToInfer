@@ -27,8 +27,8 @@ sg_epoch = 0
 N_blocks = 100
 N_trials = 1
 N_balls = 10
-testN_blocks = 30
-valN_blocks = 30
+testN_blocks = 10
+valN_blocks = 10
 
 
 fac1 = 10#144

@@ -61,29 +61,24 @@ class Urn ():
         ELBOs = []
         logq = log_softmax(yval.view(1,-1).data.numpy())
         logp = target.view(1,-1).data.numpy()
-        q = np.exp(logq)
-        gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
-        mu = np.exp(logq)[0,0]
-        #gradlogq = -np.array([[-mu, 1-mu], [mu-1, mu]])
-        #print("gradlogq", mu, gradq)
-        gradlogq = gradq
-        
+        q = np.exp(logq)[0]
+        #gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
+        L = logp.shape[1]
+        #gradq = 2*(- 2*np.eye(L) + 1.0)/L
+        #print(q, np.exp(logp)[0]/np.sum(np.exp(logp)[0]))
         count = 0
         ELBO_grad = 0
         while count < nsamps:
-            onehot = np.zeros(2)
-            s = np.reshape(np.random.multinomial(1, np.reshape(q, (-1))), (-1,1))
-            onehot[s[0][0]] = 1
-            ELBO_grad += np.reshape(q[0]-onehot, (1,-1))*(np.dot(logp, onehot) - np.dot(logq, onehot))
-            #ELBO_grad += np.dot(gradlogq,s)*(np.dot(logp, s) - np.dot(logq, s))
-
+            s = np.random.multinomial(1, q, 1)
+            onehot = np.reshape(s, (-1,1))
+            ELBO_grad += np.reshape(q-s, (1,-1))*(np.dot(logp, onehot) - np.dot(logq, onehot))
             count += 1
             
         
         grad = ELBO_grad/count
-        #print(q, s, grad)
     
         return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
+
        
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
