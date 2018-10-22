@@ -57,15 +57,23 @@ class Urn ():
     
     @staticmethod
     def VI_loss_function_grad(yval, target):
+        '''
+        TODOs:
+        1. check dimensionality of q for replications in while loop
+-            s = np.random.multinomial(1, q, 1)
+-            onehot = np.reshape(s, (-1,1))
+-            ELBO_grad += np.reshape(q-s, (1,-1))*(np.dot(logp, onehot) - np.dot(logq, onehot))
++            onehot = np.zeros(2)
++            s = np.reshape(np.random.multinomial(1, np.reshape(q, (-1))), (-1,1))
++            onehot[s[0][0]] = 1
++            ELBO_grad += np.reshape(q[0]-onehot, (1,-1))*(np.dot(logp, onehot) - np.dot(logq, onehot))
+        '''
         nsamps = 50
         ELBOs = []
         logq = log_softmax(yval.view(1,-1).data.numpy())
         logp = target.view(1,-1).data.numpy()
         q = np.exp(logq)[0]
-        #gradq = -np.array([[1.0,-1.0], [-1.0,1.0]])
         L = logp.shape[1]
-        #gradq = 2*(- 2*np.eye(L) + 1.0)/L
-        #print(q, np.exp(logp)[0]/np.sum(np.exp(logp)[0]))
         count = 0
         ELBO_grad = 0
         while count < nsamps:
@@ -90,10 +98,21 @@ class Urn ():
         
 
     
-    def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
+    def data_gen(self, ps, ls, N_trials, N_blocks, N_balls, expt_name = None):
+        
+        '''
+        TODO:
+        1. Check dimensionality differences in ls from replications vs NU
+        Change -- have NU provide a 2-D input as well
+        '''
+        
+        if expt_name == 'PE': sbsu = True
+        else: sbsu = False        
+        
     
         draws = np.empty(shape = (N_trials*N_blocks, 1))
-        liks = np.empty(shape = (N_trials*N_blocks, 1))
+        lik1s = np.empty(shape = (N_trials*N_blocks, 1))
+        lik2s = np.empty(shape = (N_trials*N_blocks, 1))
         pris = np.empty(shape = (N_trials*N_blocks, 1))
         Ns = np.empty(shape = (N_trials*N_blocks, 1))
         
@@ -113,40 +132,45 @@ class Urn ():
         for i, (p,l) in enumerate(zip(ps, ls)):
             l = l/N_balls
 
-            urn_b = np.random.binomial(1, p, N_trials)
-            
-            # diff between N1 and N0
-            # high when many in urn 1
-            pri_b = np.cumsum(2*urn_b - 1)
-            pri_b[1:] = pri_b[:-1]
-            pri_b[0] = 0
-            N_b = (1.0*np.arange(N_trials))/N_trials
-            #N_b = np.zeros(N_trials)
-            pri_b = pri_b / (np.arange(N_trials) + 1.0)
-            
-            # probability of 
-            if l < 0.5 : l = 1.0 - l
+            if sbsu:
+                urn_b = np.random.binomial(1, p, 1)*np.ones(N_trials)
+            else:
+                urn_b = np.random.binomial(1, p, N_trials)
+             
+
+            if expt_name == 'NU':
+                '''
+                Check with TODO above
+                '''
+                if l < 0.5 : l = 1.0 - l
             draws_b = []
+            delNs = [0]
+            delN = 0
             for urn in urn_b:
                 if urn:
-                    lik = l
+                    lik = l[1]
                 else:
-                    lik = 1.0-l
+                    lik = l[0]
                 # lik will always be the higher prob
                 # we want to draw col 0 with this prob
                 draw = np.random.binomial(1, lik, 1)
                 draws_b.append(draw)
+                success = draw*(1-urn) + (1-draw)*urn
+                if expt_name == 'PE':
+                    delN += (2*success - 1)[0]
+                else:
+                    delN = 0
+                delNs.append(delN)
                 
+            Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1]                
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
-            #urns[i*N_trials : (i+1)*N_trials, 0] = urn_b
             urns[i*N_trials : (i+1)*N_trials, 0] = np.zeros(N_trials)
-            liks[i*N_trials : (i+1)*N_trials, 0] = l * np.ones(N_trials)
+            lik1s[i*N_trials : (i+1)*N_trials, 0] = l[0] * np.ones(N_trials)
+            lik2s[i*N_trials : (i+1)*N_trials, 0] = l[1] * np.ones(N_trials)            
             pris[i*N_trials : (i+1)*N_trials, 0] = p * np.ones(N_trials)
-            #pris[i*N_trials : (i+1)*N_trials, 0] = pri_b
-            Ns[i*N_trials : (i+1)*N_trials, 0] = N_b
             
         
-        X = np.hstack((draws, liks, pris, Ns))
+        X = np.hstack((draws, lik1s, lik2s, pris, Ns))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
@@ -158,7 +182,7 @@ class Urn ():
     
     
     
-    def assign_PL(self, N_balls, N_blocks, fac):
+    def assign_PL_EricUrn(self, N_balls, N_blocks, fac):
         
         # but we don't want all of one color ever
         uninf = [4.0, 5.0, 5.0, 6.0]
@@ -174,22 +198,51 @@ class Urn ():
         
         return priors, likls
     
-    
-    #def assign_PL(self, N_balls, N_blocks, fac):
+    def assign_PL_replications(self, N_balls, N_blocks, cond, expt_name, Nlc = None):
         
-        ## but we don't want all of one color ever
-        
-    
-        #alpha_p = beta_p = fac
-        #priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
-        #priors = np.clip(priors, 0.1, 0.9)
-        
-        #alpha_l = beta_l = 1.0/fac
-        #likls = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
-        #likls = np.clip(likls, 1, N_balls - 1)
-        
-        #return priors, likls
+        if expt_name == "PM":
+            Ps = np.linspace(0.1,0.9,9)
+            LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0]])
+            #LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0], [3.0, 3.0], [1.0, 1.0], [5.0, 5.0]])
+
+        elif expt_name == "PE":
+            Ps = np.array([0.5])
+            LRs = np.array([[85.0, 15.0], [70.0,30.0], [55.0,45.0]])            
             
+        if Nlc is not None:
+            LRs = LRs[Nlc].reshape(-1,2)
+            
+        # but we don't want all of one color ever
+        cond = 'test'
+        
+        if cond == 'train':
+        
+            alpha_p = beta_p = 1.0
+            priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
+            priors = np.clip(priors, 0.1, 0.9)
+            
+            alpha_l = beta_l = 1.0
+            l1s = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
+            l1s = np.clip(l1s, 1, N_balls - 1)
+            l2s = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
+            l2s = np.clip(l2s, 1, N_balls - 1)
+            
+            l_inds = ((2*l1s - 1)/(2*l2s - 1) > 0).astype('int')
+            
+            likls = np.vstack((l1s, l2s))
+            
+        elif cond == "test":
+            
+            priors = np.random.choice(Ps, N_blocks)
+            l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
+            which_urn = np.random.choice([1,1], N_blocks)
+            
+            likls0 = LRs[l_inds]
+            likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
+        
+        return priors.reshape((-1,1)), likls.reshape((-1,2)), l_inds     
+    
+
         
     
     def get_rationalmodel(self, prior_fac, N_trials):

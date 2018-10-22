@@ -27,7 +27,7 @@ cbbPalette <- c("grey50", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 
 type = 'test'
 dm<-data.frame(Condition=numeric(), frational=numeric(), fpeople=numeric(), prior=numeric())
-for (m in c(105:110)){
+for (m in c(1000:1001)){
   modeljson<-fromJSON(file = paste0("nhid2_part",m,"_", type, "preds_disc_epoch30_sg0_f100.1_Nb100_Nt1.json"))
   prior<-c(modeljson$inf_p$p,modeljson$uninf_p$p)
   frational<-c(modeljson$inf_p$hrm,modeljson$uninf_p$hrm)
