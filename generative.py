@@ -91,7 +91,7 @@ class Urn ():
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLP_disc(INPUT_SIZE, NUM_LABELS, nhid, None, Urn.VI_loss_function_grad)
+        return models.MLP_disc(INPUT_SIZE, NUM_LABELS:q, nhid, None, Urn.VI_loss_function_grad)
     
     
         #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())
@@ -197,6 +197,35 @@ class Urn ():
             
         
         return priors, likls
+    
+    def assign_PL_CP(self, N_balls, blocks, which, alpha_post, alpha_pre):
+        
+        if which == "test":
+            alpha_post = alpha_pre = 1.0
+            
+        posts = np.random.beta(alpha_post, alpha_post, blocks)
+        #post_los = np.log(posts/(1.0 - posts))
+        pres = np.random.beta(alpha_pre, alpha_pre, blocks)
+        #pre_los = np.log(pres/(1.0 - pres))
+        priors = []
+        likls = []
+        
+        for pre, post in zip(pres, posts):
+            x = (post*(1.0 - pre))/(pre*(1.0 - post))
+            edit = x / (1.0 + x)
+            
+            ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
+            pp = np.clip(np.round(pre*N_balls), 1, N_balls - 1)
+            if (np.random.uniform() > 0.5):
+                # prior is pre
+                priors.append(pp*1.0 / N_balls)
+                likls.append([ep, N_balls - ep])
+            else:
+                priors.append(ep*1.0 / N_balls)
+                likls.append([pp, N_balls - pp])                
+                
+        
+        return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))    
     
     def assign_PL_replications(self, N_balls, N_blocks, cond, expt_name, Nlc = None):
         
