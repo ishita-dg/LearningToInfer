@@ -52,6 +52,7 @@ class MLP_disc(nn.Module):
                     
                 elif self.loss_function_grad is not None:
                     loss = nn.MSELoss()(yval, target.view(1,-1))
+                    #loss = nn.MSELoss()(yval, target)
                     self.def_newgrad(yval, target)
                 
                 yval.register_hook(self.newgrad)
@@ -89,7 +90,7 @@ class MLP_disc(nn.Module):
                 self.train(datapoint, sg_epoch, verbose = False)
                 
             yval = self(autograd.Variable(x)).view(1,-1)
-            yval = F.log_softmax(yval)
+            yval = F.log_softmax(yval, dim = 1)
             pred.append(np.exp(yval.data.numpy())[0])
             count += 1.0
             
@@ -199,13 +200,17 @@ class UrnRational():
         self.mus = []
         return
     
-    def pred_loglik(self, draw, lik):
-        urn = np.array([0, 1])
-        logp = np.zeros(2)
-        logp += (draw*urn + (1 - draw)*(1 - urn))*np.log(lik) 
-        logp += (draw*(1 - urn) + (1 - draw)*urn)*np.log(1 - lik) 
-        #print("logp", logp)
-        return logp
+    def pred_loglik(self, draw, lik, N):
+        '''
+        TODO: Ensure that NU has the right lik convention
+        '''
+        N += (2*draw - 1)
+        if (N == 0):
+            return(np.array([0.0, 0.0]))
+        sign = int(N/np.abs(N))
+        likl = (lik[::sign])**abs(N)
+        likl /= sum(likl)
+        return np.log(likl)
     
     def pred_logprior(self, pri, N):
         # point estimate of posterior mu_p
@@ -213,7 +218,7 @@ class UrnRational():
         return np.log(np.clip(np.array([1.0 - p0, p0]), 0.01, 0.99))
     
     def log_joint(self, draw, lik, pri, N):
-        return self.pred_loglik(draw, lik) + self.pred_logprior(pri, N)
+        return self.pred_loglik(draw, lik, N) + self.pred_logprior(pri, N)
         
     def pred_post(self, draw, lik, pri, N):
         # draw is 0 if col is one that is more un urn 0
@@ -265,7 +270,8 @@ class UrnRational():
 
         for x, y in zip(data["X"], data["y"]):
             count += 1                
-            draw, lik, pri, N = x.numpy()
+            draw, lik1, lik2, pri, N = x.numpy()
+            lik = np.array([lik1, lik2])
             urn = y.numpy()
             preds.append(self.pred_post(draw, lik, pri, N))
             ljs.append(self.log_joint(draw, lik, pri, N))
@@ -289,7 +295,8 @@ class UrnRational():
         ljs = []
         
         for x, y in zip(data["X"], data["y"]):
-            draw, lik, pri, N = x.numpy()
+            draw, lik1, lik2, pri, N = x.numpy()
+            lik = np.array([lik1, lik2])
             urn = y.numpy()
             pred = self.pred_post(draw, lik, pri, N)
             preds.append(pred)
