@@ -91,7 +91,7 @@ class Urn ():
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLP_disc(INPUT_SIZE, 2, nhid, None, Urn.VI_loss_function_grad)
+        return models.MLP_disc(INPUT_SIZE, NUM_LABELS, nhid, None, Urn.VI_loss_function_grad)
     
     
         #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())
