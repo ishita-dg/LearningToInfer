@@ -39,6 +39,19 @@ def def_npgaussian_gradlog(yval):
     glp = lambda x : np.array([mgrad(x), lsdgrad(x)])
     return glp
 
+def find_KL(dist1, dist2):
+    L = len(dist1)
+    if L != len(dist2):
+        raise ValueError("Distributions must be same length")
+    kl = 0.0
+    for i in xrange(L):
+        #temp = dist1[i]*(np.log(dist1[i]) - np.log(dist2[i]))
+        if (dist1[i] != 0 and dist2[i] != 0):
+            #print kl
+            kl += dist1[i]*(np.log(dist1[i]) - np.log(dist2[i]))
+
+    #print kl
+    return np.absolute(kl)
 
 
 def gaussian_entropy(std):
@@ -47,10 +60,6 @@ def gaussian_entropy(std):
     return 0.5 * len(std) * (1.0 + torch.log(norm)) + torch.sum(log_std)
 
 def log_softmax(p):
-    #print(p)
-    #print(np.exp(p))
-    #print(np.exp(p)/np.sum(np.exp(p)))
-    #print(np.log(np.exp(p)/np.sum(np.exp(p))))
     return np.log(np.exp(p)/np.sum(np.exp(p)))
 
 def inv_logit(p):
