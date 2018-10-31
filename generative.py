@@ -98,17 +98,17 @@ class Urn ():
         
 
     
-    def data_gen(self, ps, ls, N_trials, N_blocks, N_balls, expt_name = None):
+    def data_gen(self, block_vals, N_trials, N_balls, same_urn = False):
         
         '''
         TODO:
         1. Check dimensionality differences in ls from replications vs NU
         Change -- have NU provide a 2-D input as well
+        2. is delN sufficient or do we need N too? for PE
         '''
+        ps, l1s, l2s = block_vals
         
-        if expt_name == 'PE': sbsu = True
-        else: sbsu = False        
-        
+        N_blocks = len(ps)        
     
         draws = np.empty(shape = (N_trials*N_blocks, 1))
         lik1s = np.empty(shape = (N_trials*N_blocks, 1))
@@ -116,47 +116,27 @@ class Urn ():
         pris = np.empty(shape = (N_trials*N_blocks, 1))
         Ns = np.empty(shape = (N_trials*N_blocks, 1))
         
-        urns = np.empty(shape = (N_trials*N_blocks, 1))
         
-        # we want to remove overall bias for urn 1 vs 0
-        
-        # let the color that is in excess in urn 1
-        # be assigned index 1
-        
-        # lik represents the fraction of col1 in urn1
-        
-        # pri is the fraction of times the left urn is chosen in one block
-        # minus the number of times the right urn is chosen
-        
-        
-        for i, (p,l) in enumerate(zip(ps, ls)):
-            l = l/N_balls
-
-            if sbsu:
+        for i, (p,l1,l2) in enumerate(zip(ps, l1s, l2s)):
+            
+            if same_urn:
                 urn_b = np.random.binomial(1, p, 1)*np.ones(N_trials)
             else:
                 urn_b = np.random.binomial(1, p, N_trials)
              
-
-            if expt_name == 'NU':
-                '''
-                Check with TODO above
-                '''
-                if l < 0.5 : l = 1.0 - l
             draws_b = []
             delNs = [0]
             delN = 0
             for urn in urn_b:
                 if urn:
-                    lik = l[1]
+                    lik = l1
                 else:
-                    lik = l[0]
-                # lik will always be the higher prob
-                # we want to draw col 0 with this prob
+                    lik = l2
+                # lik will always be the higher prob -- no longer true
                 draw = np.random.binomial(1, lik, 1)
                 draws_b.append(draw)
                 success = draw*(1-urn) + (1-draw)*urn
-                if expt_name == 'PE':
+                if same_urn:
                     delN += (2*success - 1)[0]
                 else:
                     delN = 0
@@ -164,9 +144,8 @@ class Urn ():
                 
             Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1]                
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
-            urns[i*N_trials : (i+1)*N_trials, 0] = np.zeros(N_trials)
-            lik1s[i*N_trials : (i+1)*N_trials, 0] = l[0] * np.ones(N_trials)
-            lik2s[i*N_trials : (i+1)*N_trials, 0] = l[1] * np.ones(N_trials)            
+            lik1s[i*N_trials : (i+1)*N_trials, 0] = l1 * np.ones(N_trials)
+            lik2s[i*N_trials : (i+1)*N_trials, 0] = l2 * np.ones(N_trials)            
             pris[i*N_trials : (i+1)*N_trials, 0] = p * np.ones(N_trials)
             
         
@@ -174,29 +153,31 @@ class Urn ():
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
-        Y = torch.from_numpy(urns)
-        Y = Y.type(torch.LongTensor)
+        #Y = torch.from_numpy(urns)
+        #Y = Y.type(torch.LongTensor)
         
         
-        return(X, Y)
+        return X
     
     
     
-    def assign_PL_EricUrn(self, N_balls, N_blocks, fac):
+    def assign_PL_EU(self, N_balls, N_blocks, inf_data):
         
         # but we don't want all of one color ever
         uninf = [4.0, 5.0, 5.0, 6.0]
         inf = [1.0, 2.0, 2.0, 3.0, 7.0, 8.0, 8.0, 9.0]
         
-        if fac < 1.0:
-            priors = np.random.choice(inf, N_blocks)/10.0
-            likls = np.random.choice(uninf, N_blocks)            
-        else:
+        if inf_data:
             priors = np.random.choice(uninf, N_blocks)/10.0
-            likls = np.random.choice(inf, N_blocks)
+            lik0s = np.random.choice(inf, N_blocks)/10.0          
+            lik1s = 1.0 - lik0s
+        else:
+            priors = np.random.choice(inf, N_blocks)/10.0
+            lik0s = np.random.choice(uninf, N_blocks)/10.0
+            lik1s = 1.0 - lik0s
             
         
-        return priors, likls
+        return priors, lik0s, lik1s
     
     def assign_PL_CP(self, N_balls, blocks, which, alpha_post, alpha_pre):
         

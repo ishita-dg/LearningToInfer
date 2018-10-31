@@ -69,18 +69,14 @@ class MLP_disc(nn.Module):
         
         orig = copy.deepcopy(self)
         
-        for x, y, y_p, lj in zip(data["X"], data["y"], data["r"], data["log_joint"]):
+        for x, lj in zip(data["X"], data["log_joint"]):
             if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
             
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
-                             "y": y.view(1, -1),
-                             "y_hrm": y_p.view(1, -1),
                              "log_joint": lj.view(1,-1)}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
-                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
-                datapoint["y_hrm"] = torch.cat((datapoint["y_hrm"], y_p.view(1, -1)), 0)
                 datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1, -1)), 0)
 
             if (not count%N_trials):
@@ -265,15 +261,12 @@ class UrnRational():
         preds = []
         ljs = []
 
-        for x, y in zip(data["X"], data["y"]):
+        for x in data["X"]:
             count += 1                
             draw, lik1, lik2, pri, N = x.numpy()
             lik = np.array([lik1, lik2])
-            urn = y.numpy()
             preds.append(self.pred_post(draw, lik, pri, N))
             ljs.append(self.log_joint(draw, lik, pri, N))
-            if not count%self.N_t:
-                self.update_params(pri, N, urn)
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_hrm"] = pred0.type(torch.FloatTensor)
@@ -291,28 +284,18 @@ class UrnRational():
         preds = []
         ljs = []
         
-        for x, y in zip(data["X"], data["y"]):
+        for x in data["X"]:
             draw, lik1, lik2, pri, N = x.numpy()
             lik = np.array([lik1, lik2])
-            urn = y.numpy()
             pred = self.pred_post(draw, lik, pri, N)
             preds.append(pred)
             ljs.append(self.log_joint(draw, lik, pri, N))
-            err_prob += self.pred_post(draw, lik, pri, N)[1 - urn]
-            err += round(self.pred_post(draw, lik, pri, N)[1 - urn])
-            count += 1.0
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
         data["y_hrm"] = pred0.type(torch.FloatTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
-        
-        err /= count
-        err_prob /= count
-        #print("classification error : {0}, \
-        #MSE error : {1}".format(round(100*err), -1))
-        #print("*********************")
 
         return data
         
