@@ -13,45 +13,69 @@ import matplotlib.pyplot as plt
 import sys
 import json
 
-N_part = sys.argv[1]
-#N_part = 1000
+#N_part = sys.argv[1]
+N_part = 0
 
 print("********************")
 print("Running participant number ", N_part)
 
-torch.manual_seed(36)
+
+# Run results for reanalysis of Sam's experiment (SR)
+
+expt = generative.Urn()
+expt_name = "SR"
+
+# Parameters for generating the training data
 
 N_epoch = 30
 sg_epoch = 0
     
-N_blocks = 100
-N_trials = 1
-N_balls = 10
-testN_blocks = 10
-valN_blocks = 10
+N_trials = 10
+#N_balls = 10
 
+train_blocks = 10
+test_blocks = 10
+N_blocks = train_blocks + test_blocks
 
-fac1 = 10#144
-fac2 = 0.1#36
-fac = str(fac1) + str(fac2)
-prior_fac = 1
+# Optimization parameters
+L2 = 0.0
+lr = 0.05
+
+# Network parameters
 NUM_LABELS = 2
 DIM = 1
-
 INPUT_SIZE = 4
-nhid = 2
-    
+NHID = 2
+
+# Informative data vs uninformative data
+
+prior_variance = 144.0
+lik_variance = 25.0
+
+ID_approx_model = expt.get_approxmodel(DIM, INPUT_SIZE, NHID)
+ID_rational_model = expt.get_rationalmodel(prior_variance, lik_variance, N_trials) 
+block_Ps =  expt.assign_PL(N_blocks, prior_variance)
+ID_X = expt.data_gen(block_Ps, lik_variance, N_trials)
+
+
+
+prior_variance = 36.0
+lik_variance = 25.0
+
+UD_approx_model = expt.get_approxmodel(DIM, INPUT_SIZE, NHID)
+UD_rational_model = expt.get_rationalmodel(prior_variance, lik_variance, N_trials) 
+
+block_Ps =  expt.assign_PL(N_blocks, prior_variance)
+UD_X = expt.data_gen(block_Ps, lik_variance, N_trials)
+
+
+
 expts = {"disc": {},
          "cont": {}}
 
 expts["disc"]["expt_type"] = generative.Urn()
 expts["cont"]["expt_type"] = generative.Button()
 
-L2 = {"disc": {'inf_p': 0, 'uninf_p':0},
-      "cont": {'inf_p': 0.0, 'uninf_p':0.0}}
-
-lr = {"disc": {'inf_p': 0.05, 'uninf_p':0.05},
-      "cont": {'inf_p': 0.05, 'uninf_p':0.01}}
 
 for expt in ['disc']:
     

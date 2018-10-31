@@ -69,18 +69,18 @@ class MLP_disc(nn.Module):
         
         orig = copy.deepcopy(self)
         
-        for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
+        for x, y, y_p, lj in zip(data["X"], data["y"], data["r"], data["log_joint"]):
             if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
             
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y": y.view(1, -1),
-                             "y_pred_hrm": y_p.view(1, -1),
+                             "y_hrm": y_p.view(1, -1),
                              "log_joint": lj.view(1,-1)}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
                 datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
-                datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+                datapoint["y_hrm"] = torch.cat((datapoint["y_hrm"], y_p.view(1, -1)), 0)
                 datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1, -1)), 0)
 
             if (not count%N_trials):
@@ -130,7 +130,7 @@ class MLP_cont(nn.Module):
         
         for epoch in range(N_epoch):
             if not epoch%10 and verbose: print("Epoch number: ", epoch)
-            #for x, y in zip(data["X"], data["y_pred_hrm"]):
+            #for x, y in zip(data["X"], data["y_hrm"]):
             for x, y in zip(data["X"], data["log_joint"]):  
                 
                 self.zero_grad()
@@ -158,20 +158,18 @@ class MLP_cont(nn.Module):
         
         orig = copy.deepcopy(self)
         
-        for x, y, y_p, lj in zip(data["X"], data["y"], data["y_pred_hrm"], data["log_joint"]):
+        for x, y_p, lj in zip(data["X"], data["y_hrm"], data["log_joint"]):
             
             if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
             count += 1.0
             
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
-                             "y": y.view(1, -1),
-                             "y_pred_hrm": y_p.view(1, -1),
+                             "y_hrm": y_p.view(1, -1),
                              "log_joint": lj.view(1,2,2)}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
-                datapoint["y"] = torch.cat((datapoint["y"], y.view(1, -1)), 0)
-                datapoint["y_pred_hrm"] = torch.cat((datapoint["y_pred_hrm"], y_p.view(1, -1)), 0)
+                datapoint["y_hrm"] = torch.cat((datapoint["y_hrm"], y_p.view(1, -1)), 0)
                 datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1,2,2)), 0)
 
             if (not count%N_trials):
@@ -194,8 +192,7 @@ class MLP_cont(nn.Module):
 
 class UrnRational():
         
-    def __init__(self, prior_fac, N_trials):
-        self.alpha = prior_fac
+    def __init__(self, N_trials):
         self.N_t = N_trials
         self.mus = []
         return
@@ -279,7 +276,7 @@ class UrnRational():
                 self.update_params(pri, N, urn)
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.FloatTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
@@ -306,7 +303,7 @@ class UrnRational():
             count += 1.0
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.FloatTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
@@ -323,17 +320,17 @@ class UrnRational():
     
 class ButtonRational():
         
-    def __init__(self, prior_fac, N_trials):
+    def __init__(self, prior_var, lik_var, N_trials):
         self.pr_mu = 0
-        self.lik_var = 5.0**2
-        self.pr_var = prior_fac
-        self.N_t = 1.0
-        self.mus = []
+        self.lik_var = lik_var
+        self.pr_var = prior_var
+        self.N_t = N_trials
+        self.data_mus = []
     
     def update_params(self, msf, block_n, block_vals):
         # MLE for variance across blocks
         #self.mus.append(msf)
-        #if len(self.mus) > 1 : self.pr_var = np.var(np.array(self.mus))
+        #if len(self.mus) > 1 : self.prior_var = np.var(np.array(self.mus))
         #self.lik_var += (np.var(np.array(block_vals)) - self.lik_var)/block_n
         return
     
@@ -357,7 +354,7 @@ class ButtonRational():
         #msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
         #m = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
         #s2 = autograd.Variable(torch.Tensor([self.lik_var])).view(1,-1)
-        #v2 = autograd.Variable(torch.Tensor(np.array([self.pr_var]))).view(1,-1)
+        #v2 = autograd.Variable(torch.Tensor(np.array([self.prior_var]))).view(1,-1)
                 
         #pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
                                     #+ torch.log(2*np.pi*s2))/2.0
@@ -387,9 +384,9 @@ class ButtonRational():
         f_joints = []
         block_vals = []
 
-        for x, y in zip(data["X"], data["y"]):
+        for x in data["X"]:
             count += 1                
-            last, msf, N, _ = x.numpy()
+            last, msf, N = x.numpy()
             preds.append(self.pred_post_MAP(last, msf, N))
             f_joints.append(self.log_joint(last, msf, N))
             block_vals.append(last)
@@ -398,7 +395,7 @@ class ButtonRational():
                 block_vals = []
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
+        data["y_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
         
         data["log_joint"] = f_joints
         
@@ -406,29 +403,20 @@ class ButtonRational():
     
     def test (self, data, name = None):
         # validate approx_models - will come back to this for resource rationality
-        err_mse = 0 
-        count = 0.0
         preds = []
         f_joints = []
         
-        for x, y in zip(data["X"], data["y"]):
-            last, msf, N, _ = x.numpy()
-            tmu = y.numpy()
+        for x in data["X"]:
+            last, msf, N = x.numpy()
             pred = self.pred_post_MAP(last, msf, N)
             preds.append(pred)
             f_joints.append(self.log_joint(last, msf, N))
-            err_mse += (pred - tmu)**2 / tmu**2
-            count += 1.0
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_pred_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
+        data["y_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
         
         data["log_joint"] = f_joints
         
-        err_mse /= count
-        #print("classification error : {0}, \
-        #MSE error : {1}".format( -1, err_mse))
-        #print("*********************")
          
         return data
             

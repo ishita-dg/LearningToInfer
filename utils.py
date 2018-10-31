@@ -8,6 +8,19 @@ import matplotlib.pyplot as plt
 import json, decimal
 import pickle
 
+
+# todo finish
+def make_id(config, id = ''):
+  key_list = sorted(config.iterkeys())
+  for k in key_list:
+    v = config[k]
+    if isinstance(v, dict):
+      id = make_id(v, id)
+    else:
+      id = id + str(k)+str(v)+'__'
+  return id
+      
+      
 class DecimalEncoder(json.JSONEncoder):
     def _iterencode(self, o, markers=None):
         if isinstance(o, decimal.Decimal):
@@ -34,8 +47,8 @@ def def_npgaussian_gradlog(yval):
     #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
     mean, std = yval[0], np.exp(yval[1])
     mgrad = lambda x : - (x-mean)/(std**2)
-    lsdgrad = lambda x : - ((x-mean)/std)**2 + 1.0
-    #lsdgrad = lambda x : 0.0
+    #lsdgrad = lambda x : - ((x-mean)/std)**2 + 1.0
+    lsdgrad = lambda x : 0.0
     glp = lambda x : np.array([mgrad(x), lsdgrad(x)])
     return glp
 
@@ -213,24 +226,21 @@ def plot_calibration(di, du, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N
     plt.savefig('figs/part{6}_updates_{5}_epoch{0}_sg{1}_f{2}_Nb{3}_Nt{4}.png'.format(N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, N_part))
     
     
-    
-    
-def save_model(models, cond, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, prefix = ''):
-    fn = './data/{7}model_{5}_{6}_epoch{0}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch,
-                                                                            fac, N_blocks, N_trials, expt, cond, prefix)
-    
-    torch.save(models[cond].state_dict(), fn)
-    print("Model Saved, {0}".format(fn))
-    #with open(fn, 'wb') as handle:
-        #pickle.dump(models[cond], handle)
-    
+def save_data(data, name):
+    fn = './data/' + name
+    with open(fn, 'wb') as outfile:
+      json.dump(data, outfile, cls=DecimalEncoder)
     return
     
-def load_model(models, cond, N_epoch, sg_epoch, fac, N_blocks, N_trials, expt, prefix = ''):
-    fn = './data/{7}model_{5}_{6}_epoch{0}_f{2}_Nb{3}_Nt{4}'.format(N_epoch, sg_epoch, 
-                                                                            fac, N_blocks, N_trials, expt, cond, prefix)
+def save_model(model, name):
+    fn = './data/' + name
+    torch.save(model.state_dict(), fn)
+    print("Model Saved, {0}".format(fn))    
+    return
     
-    models[cond].load_state_dict(torch.load(fn))
+def load_model(model, name):
+    fn = './data/' + name
+    model.load_state_dict(torch.load(fn))
     print("Model Loaded, {0}".format(fn))
     return
 

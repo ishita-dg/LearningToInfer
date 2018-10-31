@@ -91,7 +91,7 @@ class Urn ():
     
     def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
         
-        return models.MLP_disc(INPUT_SIZE, NUM_LABELS:q, nhid, None, Urn.VI_loss_function_grad)
+        return models.MLP_disc(INPUT_SIZE, NUM_LABELS, nhid, None, Urn.VI_loss_function_grad)
     
     
         #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())
@@ -274,9 +274,9 @@ class Urn ():
 
         
     
-    def get_rationalmodel(self, prior_fac, N_trials):
+    def get_rationalmodel(self, N_trials):
         
-        return models.UrnRational(prior_fac, N_trials)
+        return models.UrnRational(N_trials)
     
 
 class Button ():
@@ -341,11 +341,10 @@ class Button ():
     
     @staticmethod
     def VI_loss_function_grad(yval, target):
-        nsamps = 50
+        nsamps = 80
         yval = yval.view(-1).data.numpy()
         target = target.view(2,-1).data.numpy()
         
-
         qmu, qlsd = yval
                 
         dist_q = def_npgaussian_lp(yval)
@@ -378,24 +377,21 @@ class Button ():
     
     
     def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
-        return models.MLP_cont(INPUT_SIZE, 2*DIM, nhid, None, Button.VI_loss_function_grad)
+        return models.MLP_cont(INPUT_SIZE, DIM, nhid, None, Button.VI_loss_function_grad)
     
-    def data_gen(self, ps, ls, N_trials, N_blocks, N_balls):
+    def data_gen(self, ps, lik_var, N_trials):
+        '''
+        TODO: revise
+        '''
         
-        """
-        only ps are there, ls are None
-        """
-        
-        lik_sd = 5
+        lik_sd = np.sqrt(lik_var)
+        N_blocks = len(ps)
         
         last = np.empty(shape = (N_trials*N_blocks, 1))
         m_so_far = np.empty(shape = (N_trials*N_blocks, 1))
         Ns = np.empty(shape = (N_trials*N_blocks, 1))
         
         tvals = np.empty(shape = (N_trials*N_blocks, 1))
-        
-        pad = np.zeros(shape = (N_trials*N_blocks, 1))
-        
         for i, p in enumerate(ps):
             
             vals = np.random.normal(p, lik_sd, N_trials)
@@ -418,30 +414,30 @@ class Button ():
             
         
         
-        X = np.hstack((last, m_so_far, Ns, pad))
+        X = np.hstack((last, m_so_far, Ns))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
-        Y = torch.from_numpy(tvals).view(-1,1)
-        Y = Y.type(torch.FloatTensor)
+        #Y = torch.from_numpy(tvals).view(-1,1)
+        #Y = Y.type(torch.FloatTensor)
         
         
-        return(X, Y)
+        return X
     
     
     
-    def assign_PL(self, N_balls, N_blocks, fac):
+    def assign_PL(self, N_blocks, fac):
         pr_mu = 0
         
         pr_sd = np.sqrt(fac)
         
         priors = np.random.normal(pr_mu, pr_sd, N_blocks)
 
-        return priors, None
+        return priors
     
         
     
-    def get_rationalmodel(self, prior_fac, N_trials):
+    def get_rationalmodel(self, prior_var, lik_var, N_trials):
         
-        return models.ButtonRational(prior_fac, N_trials)
+        return models.ButtonRational(prior_var, lik_var, N_trials)
     
