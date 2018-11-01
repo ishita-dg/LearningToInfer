@@ -179,15 +179,13 @@ class Urn ():
         
         return priors, lik0s, lik1s
     
-    def assign_PL_CP(self, N_balls, blocks, which, alpha_post, alpha_pre):
+    def assign_PL_CP(self, N_blocks, N_balls, alpha):
         
-        if which == "test":
-            alpha_post = alpha_pre = 1.0
+        alpha_post = alpha
+        alpha_pre = 1.0
             
-        posts = np.random.beta(alpha_post, alpha_post, blocks)
-        #post_los = np.log(posts/(1.0 - posts))
-        pres = np.random.beta(alpha_pre, alpha_pre, blocks)
-        #pre_los = np.log(pres/(1.0 - pres))
+        posts = np.random.beta(alpha_post, alpha_post, N_blocks)
+        pres = np.random.beta(alpha_pre, alpha_pre, N_blocks)
         priors = []
         likls = []
         
@@ -198,15 +196,14 @@ class Urn ():
             ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
             pp = np.clip(np.round(pre*N_balls), 1, N_balls - 1)
             if (np.random.uniform() > 0.5):
-                # prior is pre
                 priors.append(pp*1.0 / N_balls)
-                likls.append([ep, N_balls - ep])
+                likls.append([ep*1.0 / N_balls, 1.0 - ep*1.0 / N_balls])
             else:
                 priors.append(ep*1.0 / N_balls)
-                likls.append([pp, N_balls - pp])                
+                likls.append([pp*1.0 / N_balls, 1.0 - pp*1.0 / N_balls])                
                 
         
-        return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))    
+        return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))[:, 0], np.array(likls).reshape((-1,2))[:, 1] 
     
     def assign_PL_replications(self, N_balls, N_blocks, expt_name):
         
