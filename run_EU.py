@@ -22,7 +22,7 @@ config = {'N_part' : 0,
                                  'test_lr' : 0.0},
           'network_params': {'NHID': 2}}
 
-# Run results for reanalysis of Sam's experiment (SR)
+# Run results for Eric's Urn experiment (EU)
 
 expt = generative.Urn()
 expt_name = "EU" # PM, PE, SR, EU, CP
@@ -75,7 +75,7 @@ ID_train_data = {'X': ID_X[:train_blocks*N_trials],
                  }
 
 
-ID_test_data = {'X': UD_X[-test_blocks:],
+ID_test_data = {'X': UD_X[-test_blocks*N_trials:],
                 'y_hrm': None,
                 'y_am': None,
                 }
@@ -86,7 +86,7 @@ UD_train_data = {'X': UD_X[:train_blocks*N_trials],
                  'y_am': None,
                  }
 
-UD_test_data = {'X': ID_X[-test_blocks:],
+UD_test_data = {'X': ID_X[-test_blocks*N_trials:],
                 'y_hrm': None,
                 'y_am': None,
                 }

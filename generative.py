@@ -208,49 +208,26 @@ class Urn ():
         
         return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))    
     
-    def assign_PL_replications(self, N_balls, N_blocks, cond, expt_name, Nlc = None):
+    def assign_PL_replications(self, N_balls, N_blocks, expt_name):
         
         if expt_name == "PM":
             Ps = np.linspace(0.1,0.9,9)
-            LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0]])
+            LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0]])/(1.0*N_balls)
             #LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0], [3.0, 3.0], [1.0, 1.0], [5.0, 5.0]])
 
         elif expt_name == "PE":
             Ps = np.array([0.5])
-            LRs = np.array([[85.0, 15.0], [70.0,30.0], [55.0,45.0]])            
+            LRs = np.array([[85.0, 15.0], [70.0,30.0], [55.0,45.0]])/(1.0*N_balls) 
             
-        if Nlc is not None:
-            LRs = LRs[Nlc].reshape(-1,2)
-            
-        # but we don't want all of one color ever
-        cond = 'test'
         
-        if cond == 'train':
+        priors = np.random.choice(Ps, N_blocks)
+        l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
+        which_urn = np.random.choice([1,1], N_blocks)
         
-            alpha_p = beta_p = 1.0
-            priors = np.round(10*np.random.beta(alpha_p, beta_p, N_blocks))/10
-            priors = np.clip(priors, 0.1, 0.9)
-            
-            alpha_l = beta_l = 1.0
-            l1s = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
-            l1s = np.clip(l1s, 1, N_balls - 1)
-            l2s = np.round(N_balls*np.random.beta(alpha_l, beta_l, N_blocks))
-            l2s = np.clip(l2s, 1, N_balls - 1)
-            
-            l_inds = ((2*l1s - 1)/(2*l2s - 1) > 0).astype('int')
-            
-            likls = np.vstack((l1s, l2s))
-            
-        elif cond == "test":
-            
-            priors = np.random.choice(Ps, N_blocks)
-            l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
-            which_urn = np.random.choice([1,1], N_blocks)
-            
-            likls0 = LRs[l_inds]
-            likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
-        
-        return priors.reshape((-1,1)), likls.reshape((-1,2)), l_inds     
+        likls0 = LRs[l_inds]
+        likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
+    
+        return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
     
 
         

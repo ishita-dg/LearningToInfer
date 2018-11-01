@@ -77,7 +77,7 @@ ID_train_data = {'X': ID_X[:train_blocks*N_trials],
                  }
 
 
-ID_test_data = {'X': ID_X[-test_blocks:],
+ID_test_data = {'X': ID_X[-test_blocks*N_trials:],
                 'y_hrm': None,
                 'y_am': None,
                 }
@@ -88,7 +88,7 @@ UD_train_data = {'X': UD_X[:train_blocks*N_trials],
                  'y_am': None,
                  }
 
-UD_test_data = {'X': UD_X[-test_blocks:],
+UD_test_data = {'X': UD_X[-test_blocks*N_trials:],
                 'y_hrm': None,
                 'y_am': None,
                 }
