@@ -59,7 +59,7 @@ approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
 rational_model = expt.get_rationalmodel(N_trials) 
 block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
 indices = np.repeat(block_vals[-1], N_trials)
-X = expt.data_gen(block_vals[:-1], N_trials, N_balls)
+X = expt.data_gen(block_vals[:-1], N_trials, same_urn = True)
 
 # Create the data frames
 train_data = {'X': X[:train_blocks*N_trials],

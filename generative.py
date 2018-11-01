@@ -98,7 +98,7 @@ class Urn ():
         
 
     
-    def data_gen(self, block_vals, N_trials, N_balls, same_urn = False):
+    def data_gen(self, block_vals, N_trials, same_urn = False):
         
         '''
         TODO:

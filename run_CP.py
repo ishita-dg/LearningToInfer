@@ -61,7 +61,7 @@ rational_model = expt.get_rationalmodel(N_trials)
 train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha = 0.27)
 train_X = expt.data_gen(train_block_vals, N_trials, N_balls)
 test_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha = 1.0)
-test_X = expt.data_gen(test_block_vals, N_trials, N_balls)
+test_X = expt.data_gen(test_block_vals, N_trials)
 
 # Create the data frames
 train_data = {'X': train_X,

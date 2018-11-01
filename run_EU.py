@@ -58,13 +58,13 @@ storage_id = utils.make_id(config)
 ID_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
 ID_rational_model = expt.get_rationalmodel(N_trials) 
 ID_block_vals =  expt.assign_PL_EU(N_balls, N_blocks, True)
-ID_X = expt.data_gen(ID_block_vals, N_trials, N_balls)
+ID_X = expt.data_gen(ID_block_vals, N_trials)
 
 
 UD_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
 UD_rational_model = expt.get_rationalmodel(N_trials) 
 UD_block_vals =  expt.assign_PL_EU(N_balls, N_blocks, False)
-UD_X = expt.data_gen(UD_block_vals, N_trials, N_balls)
+UD_X = expt.data_gen(UD_block_vals, N_trials)
 
 
 # Create the data frames
