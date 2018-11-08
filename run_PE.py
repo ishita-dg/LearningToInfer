@@ -20,7 +20,7 @@ config = {'N_part' : 0,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
                                  'test_lr' : 0.0},
-          'network_params': {'NHID': 2}}
+          'network_params': {'NHID': 3}}
 
 # Run results for reanalysis of Philip and Edwards (PE)
 
