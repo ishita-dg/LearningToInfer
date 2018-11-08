@@ -59,7 +59,7 @@ approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
 rational_model = expt.get_rationalmodel(N_trials) 
 block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
 indices = np.repeat(block_vals[-1], N_trials)
-priors = np.repeat(block_vals[0], N_trials),  
+priors = np.repeat(block_vals[0], N_trials)  
 X = expt.data_gen(block_vals[:-1], N_trials, same_urn = True)
 
 # Create the data frames
@@ -95,7 +95,13 @@ approx_model.optimizer = optim.SGD(approx_model.parameters(),
 test_data = approx_model.test(test_data, test_epoch, N_trials)
 #test_data['ARs'] = utils.find_AR(test_data['y_hrm'], test_data['y_am'], test_data['prior'])
 utils.save_model(approx_model, name = storage_id + 'tested_model')
+
+
+for key in test_data:
+  if type(test_data[key]) is torch.FloatTensor:
+    test_data[key] = test_data[key].numpy()
+  else:
+    test_data[key] = np.array(test_data[key])
+    
 utils.save_data(test_data, name = storage_id + 'test_data')
 
-
-        

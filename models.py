@@ -201,13 +201,12 @@ class UrnRational():
         N += (2*draw - 1)
         if (N == 0):
             return(np.array([0.0, 0.0]))
-        sign = int(N/np.abs(N))
-        likl = (lik[::sign])**abs(N)
-        likl /= sum(likl)
+        sign = (int(N/np.abs(N)) + 1.0)/2.0
+        likl = sign*lik + (1-sign)*(1.0 - lik)
+        likl = (likl)**abs(N)
         return np.log(likl)
     
     def pred_logprior(self, pri, N):
-        # point estimate of posterior mu_p
         p0 = pri
         return np.log(np.clip(np.array([1.0 - p0, p0]), 0.01, 0.99))
     
@@ -220,41 +219,6 @@ class UrnRational():
         p = self.log_joint(draw, lik, pri, N)
         return np.exp(p)/sum(np.exp(p))
     
-    
-    def alpha_ll(self, x):
-        mus = np.array(self.mus)
-        y = 0
-        y += (x - 1)*np.sum((np.log(mus/self.N_t)))
-        y += (x - 1)*np.sum((np.log(1.0 - mus/self.N_t)))
-        y -= len(self.mus)*np.log(beta(x, x))
-        return y
-    
-    def update_params(self, pri, N, urn):
-        
-
-        ## Brute force MLE on point estimates of alpha
-        #pri *= N
-        #n_in = (N + pri)*self.N_t/2.0 + urn
-        #self.mus.append(n_in*1.0)
-        
-        
-        
-        #x = np.arange(0.0, 50.0, 0.01)
-        #y = self.alpha_ll(x)
-        #self.alpha = x[np.argmax(y)]
-        
-        ## method of moments estimators from beta params
-       
-        #mus = np.array(self.mus)
-        #m1 = np.mean(mus)
-        #m2 = np.mean(mus**2)
-        #n = self.N_t
-        
-        #self.alpha = (n*m1 - m2)/(m1 + n*(m2/m1 - m1 -1))
-        #self.alpha = ((n - m1)*(n - m2/m1))/(m1 + n*(m2/m1 - m1 -1))
-        
-        return
-        
 
     def train(self, data):
         

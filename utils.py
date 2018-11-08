@@ -117,11 +117,12 @@ def get_binned(fbin, tbin, lim):
 
 
     
-def save_data(data, name):
+def save_data(input_data, name):
+    data = input_data.copy()
     fn = './data/' + name
     
     for key in data:
-      data[key] = [float(x) for x in data[key].numpy()[:,1].flatten()]
+      data[key] = [float(x) for x in data[key].flatten()]
     with open(fn, 'wb') as outfile:
       json.dump(data, outfile, cls=DecimalEncoder)
     return
@@ -157,11 +158,19 @@ def plot_1D(ax, func, xlimits=[-20, 20], numticks=101):
     ax.set_yticks([])
     ax.set_xticks([])
     
-def find_AR(bayes_post, subj_post, prior):
-  
+def find_AR(bayes_post, subj_post, prior, randomize = False, clip = [0, 1000]):
+  if randomize:
+    which_urn = np.random.binomial(1, 0.5, bayes_post.shape)
+    bayes_post, subj_post, prior = (which_urn*[bayes_post, subj_post, prior] + 
+                                    (1.0 - which_urn)*[1.0 - bayes_post, 1.0 - subj_post, 1.0 - prior])
+    
   B_post_odds = np.log(bayes_post/(1.0 - bayes_post))
   S_post_odds = np.log(subj_post/(1.0 - subj_post))
   BLLR = B_post_odds - np.log(prior/(1.0 - prior))
   SLLR = S_post_odds - np.log(prior/(1.0 - prior))
-  
-  return  SLLR/BLLR
+  exclusion = BLLR == 0.0
+  ARs = np.empty(BLLR.shape)
+  ARs[exclusion] = 1.0
+  ARs[~exclusion] = SLLR[~exclusion]/BLLR[~exclusion]
+ 
+  return  np.clip(ARs, clip[0], clip[1])

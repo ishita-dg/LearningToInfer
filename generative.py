@@ -219,7 +219,7 @@ class Urn ():
         
         priors = np.random.choice(Ps, N_blocks)
         l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
-        which_urn = np.random.choice([1,1], N_blocks)
+        which_urn = np.random.choice([1,-1], N_blocks)
         
         likls0 = LRs[l_inds]
         likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
