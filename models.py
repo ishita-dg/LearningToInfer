@@ -17,6 +17,7 @@ class MLP_disc(nn.Module):
 
     def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
         super(MLP_disc, self).__init__()
+        self.out_dim = output_size
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
@@ -92,10 +93,10 @@ class MLP_disc(nn.Module):
             
                 
             
-        pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
-        data["y_pred_am"] = pred0.type(torch.FloatTensor)
+        pred0 = torch.from_numpy(np.array(pred)).view(-1, self.out_dim)
+        data["y_am"] = pred0.type(torch.FloatTensor)
         
-        return
+        return data
         
         
 
