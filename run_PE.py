@@ -15,7 +15,7 @@ import json
 
 # Modify in the future to read in / sysarg
 config = {'N_part' : 0,
-          'optimization_params': {'train_epoch': 10,
+          'optimization_params': {'train_epoch': 30,
                                  'test_epoch': 0,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
@@ -32,8 +32,8 @@ config['expt_name'] = expt_name
 
 N_trials = 20
 
-train_blocks = 20
-test_blocks = 20
+train_blocks = 10
+test_blocks = 100
 N_blocks = train_blocks + test_blocks
 
 N_balls = 100
@@ -105,3 +105,30 @@ for key in test_data:
     
 utils.save_data(test_data, name = storage_id + 'test_data')
 
+
+
+# Plotting
+ARs = utils.find_AR(test_data['y_hrm'][:, 0], test_data['y_am'][:, 0], 1.0 - test_data['prior'], randomize = True, clip = [-100.0, 100])
+
+fig, ax = plt.subplots(1, 1)
+for cond in np.sort(np.unique(test_data['l_cond'])):
+  mask = test_data['l_cond'] == cond
+  x, y = test_data['X'][:, -1][mask], ARs[mask]
+  Y_means = []
+  Y_errs = []
+  ps = np.sort(np.unique(x))
+  for p in ps:
+    Y_means.append(np.mean(y[x == p]))
+    Y_errs.append(np.std(y[x == p]))
+  ax.plot(ps, Y_means, label = str(cond))
+  ax.set_xlim([-3, 15])
+  ax.set_ylim([-3, 10])
+  ax.axhline(1.0, c = 'k')
+  ax.axvline(0.0, c = 'k')
+  #ax.scatter(x,y, label = str(cond))
+  
+plt.legend()
+plt.show()
+plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
+
+        
