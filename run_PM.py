@@ -15,12 +15,12 @@ import json
 
 # Modify in the future to read in / sysarg
 config = {'N_part' : 0,
-          'optimization_params': {'train_epoch': 30,
+          'optimization_params': {'train_epoch': 50,
                                  'test_epoch': 0,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
                                  'test_lr' : 0.0},
-          'network_params': {'NHID': 1}}
+          'network_params': {'NHID': 3}}
 
 # Run results for reanalysis of Peterson and Miller (PM)
 
@@ -106,7 +106,7 @@ utils.save_data(test_data, name = storage_id + 'test_data')
 
 
 # Plotting
-ARs = utils.find_AR(test_data['y_hrm'][:, 0], test_data['y_am'][:, 0], 1.0 - test_data['prior'], randomize = True, clip = [-0.0, 100])
+ARs = utils.find_AR(test_data['y_hrm'][:, 0], test_data['y_am'][:, 0], 1.0 - test_data['prior'], randomize = True, clip = [-100.0, 100])
 which_urn = np.random.binomial(1, 1.0, test_data['prior'].shape)
 new_priors = which_urn*test_data['prior'] + (1 - which_urn)*(1.0-test_data['prior'])
 
@@ -126,6 +126,6 @@ for cond in np.sort(np.unique(test_data['l_cond'])):
   
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
 
         
