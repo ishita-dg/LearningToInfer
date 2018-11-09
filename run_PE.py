@@ -16,13 +16,14 @@ import json
 
 hrms = []
 ams = []
-priors = []
+all_priors = []
 conds = []
+Ns = []
 
-for part_number in np.arange(2):
+for part_number in np.arange(10):
   
   # Modify in the future to read in / sysarg
-  config = {'N_part' : 0,
+  config = {'N_part' : part_number,
             'optimization_params': {'train_epoch': 30,
                                    'test_epoch': 0,
                                    'L2': 0.0,
@@ -68,7 +69,7 @@ for part_number in np.arange(2):
   block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials)  
-  X = expt.data_gen(block_vals[:-1], N_trials, same_urn = True)
+  X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True)
   
   # Create the data frames
   train_data = {'X': X[:train_blocks*N_trials],
@@ -112,40 +113,49 @@ for part_number in np.arange(2):
       test_data[key] = np.array(test_data[key])
       
   utils.save_data(test_data, name = storage_id + 'test_data')
-
+  
   hrms.append(test_data['y_hrm'][:, 1])
   ams.append(test_data['y_am'][:, 1])
   all_priors.append(test_data['prior'])
-  conds.append(test_data['l_cond'][:, 1])
+  conds.append(test_data['l_cond'])
+  keep = (true_urns[-test_blocks*N_trials:] * (test_data['X'][:,2] > test_data['X'][:,1]) +
+          (1 - true_urns[-test_blocks*N_trials:]) * (test_data['X'][:,2] < test_data['X'][:,1]))
+  corrected_N = ((1 - keep)*test_data['X'][:,-1] - 
+                 (keep)*test_data['X'][:,-1])
+  Ns.append(corrected_N)
   
 ams = np.reshape(np.array(ams), (-1))
 hrms = np.reshape(np.array(hrms), (-1))
-all_priors = np.reshape(np.array(priors), (-1))
+all_priors = np.reshape(np.array(all_priors), (-1))
 conds = np.reshape(np.array(conds), (-1))
+Ns = np.reshape(np.array(Ns), (-1))
   
 
 # Plotting
-all_priors, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = True, clip = [-100.0, 100])
+priors, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
 
 fig, ax = plt.subplots(1, 1)
-for cond in np.sort(np.unique(test_data['l_cond'])):
+for cond in np.sort(np.unique(conds)):
   mask = conds == cond
-  x, y = all_priors, ARs[mask]
+  x, y = Ns[mask], ARs[mask]
   Y_means = []
   Y_errs = []
+  Xs = []
   ps = np.sort(np.unique(x))
   for p in ps:
-    Y_means.append(np.mean(y[x == p]))
-    Y_errs.append(np.std(y[x == p]))
-  ax.plot(ps, Y_means, label = str(cond))
-  ax.set_xlim([-3, 15])
-  ax.set_ylim([-3, 10])
+    if sum(x == p) > len(x)/100.0:
+      Y_means.append(np.mean(y[x == p]))
+      Y_errs.append(np.std(y[x == p]))
+      Xs.append(p)
+  ax.plot(Xs, Y_means, label = str(cond))
+  ax.set_xlim([-6, 15])
+  ax.set_ylim([-1, 10])
   ax.axhline(1.0, c = 'k')
   ax.axvline(0.0, c = 'k')
   #ax.scatter(x,y, label = str(cond))
   
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
         

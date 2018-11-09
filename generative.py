@@ -98,7 +98,7 @@ class Urn ():
         
 
     
-    def data_gen(self, block_vals, N_trials, same_urn = False):
+    def data_gen(self, block_vals, N_trials, same_urn = False, return_urns = False):
         
         '''
         TODO:
@@ -115,6 +115,7 @@ class Urn ():
         lik2s = np.empty(shape = (N_trials*N_blocks, 1))
         pris = np.empty(shape = (N_trials*N_blocks, 1))
         Ns = np.empty(shape = (N_trials*N_blocks, 1))
+        true_urns = np.empty(shape = (N_trials*N_blocks))
         
         
         for i, (p,l1,l2) in enumerate(zip(ps, l1s, l2s)):
@@ -135,9 +136,9 @@ class Urn ():
                 # lik will always be the higher prob -- no longer true
                 draw = np.random.binomial(1, lik, 1)
                 draws_b.append(draw)
-                success = draw*(1-urn) + (1-draw)*urn
+                #success = draw*(1-urn) + (1-draw)*urn
                 if same_urn:
-                    delN += (2*success - 1)[0]
+                    delN += (2*draw - 1)[0]
                 else:
                     delN = 0
                 delNs.append(delN)
@@ -147,17 +148,20 @@ class Urn ():
             lik1s[i*N_trials : (i+1)*N_trials, 0] = l1 * np.ones(N_trials)
             lik2s[i*N_trials : (i+1)*N_trials, 0] = l2 * np.ones(N_trials)            
             pris[i*N_trials : (i+1)*N_trials, 0] = p * np.ones(N_trials)
+            true_urns[i*N_trials : (i+1)*N_trials] = urn_b
             
         
         X = np.hstack((draws, lik1s, lik2s, pris, Ns))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
-        #Y = torch.from_numpy(urns)
-        #Y = Y.type(torch.LongTensor)
         
+        
+        if return_urns:
+            return X, true_urns
         
         return X
+            
     
     
     

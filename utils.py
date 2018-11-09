@@ -173,4 +173,4 @@ def find_AR(bayes_post, subj_post, prior, randomize = False, clip = [-1000, 1000
   ARs[exclusion] = 1.0
   ARs[~exclusion] = SLLR[~exclusion]/BLLR[~exclusion]
  
-  return prior, np.clip(ARs, clip[0], clip[1])
+  return 1.0 - prior, np.clip(ARs, clip[0], clip[1])

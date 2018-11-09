@@ -31,7 +31,7 @@ for part_number in np.arange(6):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2}}
+            'network_params': {'NHID': 1}}
   
   # Run results for Eric's Urn experiment (EU)
   
@@ -175,12 +175,12 @@ fig, ax = plt.subplots(1, 1)
 priors, ID_ARs = utils.find_AR(ID_all_hrms, 
                        ID_all_ams, 
                        1.0 - ID_all_priors, 
-                       randomize = False, clip = [-100.0, 100])
+                       randomize = False, clip = [0.0, 100])
 
 priors, UD_ARs = utils.find_AR(UD_all_hrms, 
                        UD_all_ams, 
                        1.0 - UD_all_priors, 
-                       randomize = False, clip = [-100.0, 100])
+                       randomize = False, clip = [0.0, 100])
 
 
 #ID_Y_means = []
@@ -204,7 +204,7 @@ ax.set_ylabel('AR on test')
 
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_bar_' + storage_id + '.pdf')
+plt.savefig('figs/AR_bar_clipped' + storage_id + '.pdf')
 
         
 
