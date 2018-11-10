@@ -86,14 +86,14 @@ approx_model.optimizer = optim.SGD(approx_model.parameters(),
                                       lr=train_lr, 
                                       weight_decay = L2)
 approx_model.train(train_data, train_epoch)
-utils.save_model(approx_model, name = storage_id + 'trained_model')
+#utils.save_model(approx_model, name = storage_id + 'trained_model')
 
 # testing models
 test_data = rational_model.test(test_data)
 approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                       lr=test_lr)
 test_data = approx_model.test(test_data, test_epoch, N_trials)
-utils.save_model(approx_model, name = storage_id + 'tested_model')
+#utils.save_model(approx_model, name = storage_id + 'tested_model')
 
 
 for key in test_data:
@@ -102,11 +102,11 @@ for key in test_data:
   else:
     test_data[key] = np.array(test_data[key])
     
-utils.save_data(test_data, name = storage_id + 'test_data')
+#utils.save_data(test_data, name = storage_id + 'test_data')
 
 
 # Plotting
-ARs = utils.find_AR(test_data['y_hrm'][:, 0], test_data['y_am'][:, 0], 1.0 - test_data['prior'], randomize = True, clip = [-100.0, 100])
+ARs = utils.find_AR(test_data['y_hrm'][:, 0], test_data['y_am'][:, 0], 1.0 - test_data['prior'], randomize = True, clip = [-0.0, 100])
 which_urn = np.random.binomial(1, 1.0, test_data['prior'].shape)
 new_priors = which_urn*test_data['prior'] + (1 - which_urn)*(1.0-test_data['prior'])
 
@@ -126,6 +126,6 @@ for cond in np.sort(np.unique(test_data['l_cond'])):
   
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
         

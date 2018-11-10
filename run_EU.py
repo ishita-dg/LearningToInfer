@@ -31,7 +31,7 @@ for part_number in np.arange(6):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 1}}
+            'network_params': {'NHID': 2}}
   
   # Run results for Eric's Urn experiment (EU)
   
@@ -111,7 +111,7 @@ for part_number in np.arange(6):
                                         lr=train_lr, 
                                         weight_decay = L2)
   ID_approx_model.train(ID_train_data, train_epoch)
-  utils.save_model(ID_approx_model, name = storage_id + 'ID_trained_model')
+  #utils.save_model(ID_approx_model, name = storage_id + 'ID_trained_model')
   
   
   UD_train_data = UD_rational_model.train(UD_train_data)
@@ -119,14 +119,14 @@ for part_number in np.arange(6):
                                         lr=train_lr, 
                                         weight_decay = L2)
   UD_approx_model.train(UD_train_data, train_epoch)
-  utils.save_model(UD_approx_model, name = storage_id + 'UD_trained_model')
+  #utils.save_model(UD_approx_model, name = storage_id + 'UD_trained_model')
   
   # testing models
   ID_test_data = ID_rational_model.test(ID_test_data)
   ID_approx_model.optimizer = optim.SGD(ID_approx_model.parameters(), 
                                         lr=test_lr)
   ID_test_data = ID_approx_model.test(ID_test_data, test_epoch, N_trials)
-  utils.save_model(ID_approx_model, name = storage_id + 'ID_tested_model')
+  #utils.save_model(ID_approx_model, name = storage_id + 'ID_tested_model')
   
   for key in ID_test_data:
     if type(ID_test_data[key]) is torch.FloatTensor:
@@ -134,14 +134,14 @@ for part_number in np.arange(6):
     else:
       ID_test_data[key] = np.array(ID_test_data[key])
       
-  utils.save_data(ID_test_data, name = storage_id + 'ID_test_data')
+  #utils.save_data(ID_test_data, name = storage_id + 'ID_test_data')
   
   
   UD_test_data = UD_rational_model.test(UD_test_data)
   UD_approx_model.optimizer = optim.SGD(UD_approx_model.parameters(), 
                                         lr=test_lr)
   UD_test_data = UD_approx_model.test(UD_test_data, test_epoch, N_trials)
-  utils.save_model(UD_approx_model, name = storage_id + 'UD_tested_model')
+  #utils.save_model(UD_approx_model, name = storage_id + 'UD_tested_model')
   
   for key in UD_test_data:
     if type(UD_test_data[key]) is torch.FloatTensor:
@@ -149,7 +149,7 @@ for part_number in np.arange(6):
     else:
       UD_test_data[key] = np.array(UD_test_data[key])
       
-  utils.save_data(UD_test_data, name = storage_id + 'UD_test_data')
+  #utils.save_data(UD_test_data, name = storage_id + 'UD_test_data')
   
   ID_all_hrms.append(ID_test_data['y_hrm'][:, 1])
   ID_all_ams.append(ID_test_data['y_am'][:, 1])
@@ -172,23 +172,29 @@ UD_all_priors = np.reshape(np.array(UD_all_priors), (-1))
 
 # Plotting
 fig, ax = plt.subplots(1, 1)
-priors, ID_ARs = utils.find_AR(ID_all_hrms, 
-                       ID_all_ams, 
-                       1.0 - ID_all_priors, 
-                       randomize = False, clip = [0.0, 100])
+ID_clip_mask, ID_priors, ID_ARs = utils.find_AR(ID_all_hrms, 
+                          ID_all_ams, 
+                          1.0 - ID_all_priors, 
+                          randomize = False, clip = [-100.0, 100])
 
-priors, UD_ARs = utils.find_AR(UD_all_hrms, 
-                       UD_all_ams, 
-                       1.0 - UD_all_priors, 
-                       randomize = False, clip = [0.0, 100])
+UD_clip_mask, UD_priors, UD_ARs = utils.find_AR(UD_all_hrms, 
+                          UD_all_ams, 
+                          1.0 - UD_all_priors, 
+                          randomize = False, clip = [-100.0, 100])
 
 
+ID_ARs = ID_ARs[ID_clip_mask]
+UD_ARs = UD_ARs[UD_clip_mask]
+
+
+#ID_priors = ID_priors[ID_clip_mask]
+#UD_priors = UD_priors[UD_clip_mask]
 #ID_Y_means = []
 #UD_Y_means = []
-#ps = np.sort(np.unique(priors))
+#ps = np.sort(np.unique(ID_priors))
 #for p in ps:
-  #ID_Y_means.append(np.mean(ID_ARs[priors == p]))
-  #UD_Y_means.append(np.mean(UD_ARs[priors == p]))
+  #ID_Y_means.append(np.mean(ID_ARs[ID_priors == p]))
+  #UD_Y_means.append(np.mean(UD_ARs[UD_priors == p]))
 
 #ax.plot(ps, ID_Y_means, label = 'Inf Data')
 #ax.plot(ps, UD_Y_means, label = 'Uninf Data')
@@ -204,7 +210,7 @@ ax.set_ylabel('AR on test')
 
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_bar_clipped' + storage_id + '.pdf')
+plt.savefig('figs/AR_bar' + storage_id + '.pdf')
 
         
 

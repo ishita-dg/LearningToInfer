@@ -20,7 +20,7 @@ all_priors = []
 conds = []
 Ns = []
 
-for part_number in np.arange(10):
+for part_number in np.arange(20):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -29,7 +29,7 @@ for part_number in np.arange(10):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 3}}
+            'network_params': {'NHID': 4}}
   
   # Run results for reanalysis of Philip and Edwards (PE)
   
@@ -95,7 +95,7 @@ for part_number in np.arange(10):
                                         lr=train_lr, 
                                         weight_decay = L2)
   approx_model.train(train_data, train_epoch)
-  utils.save_model(approx_model, name = storage_id + 'trained_model')
+  #utils.save_model(approx_model, name = storage_id + 'trained_model')
   
   # testing models
   test_data = rational_model.test(test_data)
@@ -103,7 +103,7 @@ for part_number in np.arange(10):
                                         lr=test_lr)
   test_data = approx_model.test(test_data, test_epoch, N_trials)
   #test_data['ARs'] = utils.find_AR(test_data['y_hrm'], test_data['y_am'], test_data['prior'])
-  utils.save_model(approx_model, name = storage_id + 'tested_model')
+  #utils.save_model(approx_model, name = storage_id + 'tested_model')
   
   
   for key in test_data:
@@ -112,7 +112,7 @@ for part_number in np.arange(10):
     else:
       test_data[key] = np.array(test_data[key])
       
-  utils.save_data(test_data, name = storage_id + 'test_data')
+  #utils.save_data(test_data, name = storage_id + 'test_data')
   
   hrms.append(test_data['y_hrm'][:, 1])
   ams.append(test_data['y_am'][:, 1])
@@ -132,7 +132,14 @@ Ns = np.reshape(np.array(Ns), (-1))
   
 
 # Plotting
-priors, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
+clip_mask, priors, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
+
+priors = priors[clip_mask]
+ARs = ARs[clip_mask]
+conds = conds[clip_mask]
+ams = ams[clip_mask]
+hrms = hrms[clip_mask]
+Ns = Ns[clip_mask]
 
 fig, ax = plt.subplots(1, 1)
 for cond in np.sort(np.unique(conds)):
@@ -143,7 +150,7 @@ for cond in np.sort(np.unique(conds)):
   Xs = []
   ps = np.sort(np.unique(x))
   for p in ps:
-    if sum(x == p) > len(x)/100.0:
+    if sum(x == p) > len(x)/50.0:
       Y_means.append(np.mean(y[x == p]))
       Y_errs.append(np.std(y[x == p]))
       Xs.append(p)
