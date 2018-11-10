@@ -30,7 +30,7 @@ for part_number in np.arange(20):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2}}
+            'network_params': {'NHID': 1}}
   
   # Run results for reanalysis of Peterson and Miller (PM)
   
@@ -125,7 +125,7 @@ all_conds = np.reshape(np.array(conds), (-1))
   
   
 # Plotting
-clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-00.0, 100])
+clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-100.0, 100])
 
 priors = priors[clip_mask]
 ARs = all_ARs[clip_mask]
@@ -143,17 +143,17 @@ for cond in np.sort(np.unique(conds)):
   x, y = 1.0 - priors[mask], ARs[mask]
   Y_means = []
   Y_errs = []
-  digitized = np.digitize(x, bins)
+  digitized = np.digitize(x - 0.01, bins)
   for d in np.arange(len(bins)):
     Y_means.append(np.mean(y[digitized == d+1]))
     Y_errs.append(np.var(y[digitized == d+1]))
   
-  ax.plot(bins, Y_means, label = str(cond))
+  ax.plot(bins+jump, Y_means, label = str(cond))
   ax.axhline(1.0, c = 'k')
   #ax.scatter(x,y, label = str(cond))
   
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
 
         
