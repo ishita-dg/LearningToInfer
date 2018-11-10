@@ -132,13 +132,10 @@ Ns = np.reshape(np.array(Ns), (-1))
   
 
 # Plotting
-clip_mask, priors, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
+clip_mask, _, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
 
-priors = priors[clip_mask]
 ARs = ARs[clip_mask]
 conds = conds[clip_mask]
-ams = ams[clip_mask]
-hrms = hrms[clip_mask]
 Ns = Ns[clip_mask]
 
 fig, ax = plt.subplots(1, 1)
