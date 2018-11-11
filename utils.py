@@ -47,8 +47,8 @@ def def_npgaussian_gradlog(yval):
     #mean, std = yval[0,:D].view(1, -1), torch.exp(yval[0,-D:].view(1, -1))
     mean, std = yval[0], np.exp(yval[1])
     mgrad = lambda x : - (x-mean)/(std**2)
-    #lsdgrad = lambda x : - ((x-mean)/std)**2 + 1.0
-    lsdgrad = lambda x : 0.0
+    lsdgrad = lambda x : - ((x-mean)/std)**2 + 1.0
+    #lsdgrad = lambda x : 0.0
     glp = lambda x : np.array([mgrad(x), lsdgrad(x)])
     return glp
 

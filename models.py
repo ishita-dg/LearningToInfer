@@ -106,7 +106,7 @@ class MLP_cont(nn.Module):
     def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
         super(MLP_cont, self).__init__()
         self.fc1 = nn.Linear(input_size, nhid)
-        #self.fc_opt = nn.Linear(nhid, nhid)
+        self.fc_opt = nn.Linear(nhid, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
         self.loss_function_grad = loss_function_grad
@@ -115,7 +115,8 @@ class MLP_cont(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         x = F.tanh(x)
-       
+        #x = self.fc_opt(x)
+        #x = F.softmax(x)
         x = self.fc2(x)
         return x
     
@@ -133,19 +134,20 @@ class MLP_cont(nn.Module):
                 self.zero_grad()
                 
                 yval = self(autograd.Variable(x)).view(1,-1)
+                target = autograd.Variable(y)
         
                 if self.loss_function is not None:
                     loss = self.loss_function(yval, y)
                     self.newgrad = lambda x : x
                     
                 elif self.loss_function_grad is not None:
-                    loss = nn.MSELoss()(yval, y.view(1,-1)[0,:2])
-                    self.def_newgrad(yval, y)
+                    loss = nn.MSELoss()(yval, target.view(1,-1)[0,:2])
+                    self.def_newgrad(yval, target)
                 
                 yval.register_hook(self.newgrad)
                 loss.backward()
                 self.optimizer.step()
-        return
+        return data
                 
     def test (self, data, sg_epoch, N_trials, nft = True, name = None):
 
@@ -158,16 +160,15 @@ class MLP_cont(nn.Module):
         for x, y_p, lj in zip(data["X"], data["y_hrm"], data["log_joint"]):
             
             if not (count)%(N_trials * 25) : print("Testing, ", count/N_trials)
-            count += 1.0
-            
+            count += 1.0            
             if (not datapoint.keys() or nft):
                 datapoint = {"X": x.view(1, -1),
                              "y_hrm": y_p.view(1, -1),
-                             "log_joint": lj.view(1,2,2)}                
+                             "log_joint": lj}                
             else:
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
                 datapoint["y_hrm"] = torch.cat((datapoint["y_hrm"], y_p.view(1, -1)), 0)
-                datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1,2,2)), 0)
+                datapoint["log_joint"] = torch.cat((datapoint["log_joint"], lj), 0)
 
             if (not count%N_trials):
                 self = copy.deepcopy(orig)
@@ -181,9 +182,9 @@ class MLP_cont(nn.Module):
                 
             
         pred0 = torch.from_numpy(np.array(pred)).view(-1,2)
-        data["y_pred_am"] = pred0.type(torch.FloatTensor)
+        data["y_am"] = pred0.type(torch.FloatTensor)
         
-        return
+        return data
         
     
 
@@ -272,80 +273,43 @@ class ButtonRational():
         self.pr_mu = 0
         self.lik_var = lik_var
         self.pr_var = prior_var
-        self.N_t = N_trials
+        self.N_t = 1.0 #N_trials -- currently N is not normalized
         self.data_mus = []
-    
-    def update_params(self, msf, block_n, block_vals):
-        # MLE for variance across blocks
-        #self.mus.append(msf)
-        #if len(self.mus) > 1 : self.prior_var = np.var(np.array(self.mus))
-        #self.lik_var += (np.var(np.array(block_vals)) - self.lik_var)/block_n
-        return
+
     
     def log_joint(self, last, msf, N):
-        msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
-        pr_mu = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
-        llik_var = autograd.Variable(
-            torch.Tensor(np.array([np.log(self.lik_var/(N*self.N_t))]))).view(1,-1)
-        lpr_var = autograd.Variable(
-            torch.Tensor(np.array([np.log(self.pr_var)]))).view(1,-1)
-        
-        #print(self.lik_var, N*self.N_t, llik_var.data.numpy())
-        
-        pr_vec = torch.cat((pr_mu, lpr_var/2), 0).view(1,-1)
-        lik_vec = torch.cat((msf, llik_var/2), 0).view(1,-1)
-        lj_vec = torch.cat((pr_vec, lik_vec),0)
-             
-        return lj_vec        
-    
-    #def log_joint(self, last, msf, N):
-        #msf = autograd.Variable(torch.Tensor(np.array([msf]))).view(1,-1)
-        #m = autograd.Variable(torch.Tensor([self.pr_mu])).view(1,-1)
-        #s2 = autograd.Variable(torch.Tensor([self.lik_var])).view(1,-1)
-        #v2 = autograd.Variable(torch.Tensor(np.array([self.prior_var]))).view(1,-1)
-                
-        #pri_log_prob = lambda x : -(((x - msf)/torch.sqrt(s2))**2 
-                                    #+ torch.log(2*np.pi*s2))/2.0
-        
-        #likl_log_prob = lambda x : -(((x - m)/torch.sqrt(v2))**2 
-                                            #+ torch.log(2*np.pi*v2))/2.0
-        
-        ##likl = dists.Normal(msf, torch.sqrt(s2))
-        ##pri = dists.Normal(self.pr_mu, torch.sqrt(v2))
-        
-        #lj_func = lambda x: pri_log_prob(x) + likl_log_prob(x)         
-        #return lj_func
+        lj_vec = np.array([[self.pr_mu, np.log(self.pr_var)/2.0], 
+                           [msf, np.log(self.lik_var/N)/2.0]])
+        return lj_vec 
         
     
     def pred_post_MAP(self, last, msf, N):
-        est_mu = (self.lik_var*self.pr_mu + self.pr_var*(msf * N * self.N_t)) / \
-            (self.pr_var * N * self.N_t + self.lik_var)
+        est_mu = (self.lik_var*self.pr_mu + self.pr_var*(msf * N)) / \
+            (self.pr_var * N + self.lik_var)
         
         est_sig = 1.0/\
-            np.sqrt(N * self.N_t/self.lik_var + 1.0/self.pr_var)
+            np.sqrt(N/self.lik_var + 1.0/self.pr_var)
         return np.array([est_mu, np.log(est_sig)])
     
     def train(self, data):
         
         count = 0
         preds = []
-        f_joints = []
+        ljs = []
         block_vals = []
 
         for x in data["X"]:
             count += 1                
             last, msf, N = x.numpy()
             preds.append(self.pred_post_MAP(last, msf, N))
-            f_joints.append(self.log_joint(last, msf, N))
+            ljs.append(self.log_joint(last, msf, N))
             block_vals.append(last)
-            if not count%self.N_t:
-                self.update_params(msf, count/self.N_t, block_vals)
-                block_vals = []
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
+        data["y_hrm"] = pred0.type(torch.FloatTensor)
         
-        data["log_joint"] = f_joints
+        lj0 = torch.from_numpy(np.array(ljs)).view(-1,2,2)
+        data["log_joint"] = lj0.type(torch.FloatTensor)
         
         return data
     
@@ -361,7 +325,7 @@ class ButtonRational():
             f_joints.append(self.log_joint(last, msf, N))
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = autograd.Variable(pred0.type(torch.FloatTensor))
+        data["y_hrm"] = pred0.type(torch.FloatTensor)
         
         data["log_joint"] = f_joints
         

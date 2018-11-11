@@ -125,7 +125,7 @@ all_conds = np.reshape(np.array(conds), (-1))
   
   
 # Plotting
-clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-100.0, 100])
+clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-00.0, 100])
 
 priors = priors[clip_mask]
 ARs = all_ARs[clip_mask]
@@ -154,6 +154,6 @@ for cond in np.sort(np.unique(conds)):
   
 plt.legend()
 plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_nocutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
         

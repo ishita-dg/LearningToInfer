@@ -311,6 +311,10 @@ class Button ():
         dist_lik = def_npgaussian_lp(target[1,:])
         gradq = def_npgaussian_gradlog(yval)
         
+        #print('Q ', yval[0], np.exp(yval[1]))
+        #print('prior ', target[0, 0], np.exp(target[0, 1]))
+        #print('likelihood ', target[1, 0], np.exp(target[1, 1]))
+        
         count = 0
         while count < nsamps:
             s = np.random.normal(qmu, np.exp(qlsd))
@@ -324,13 +328,19 @@ class Button ():
             else:
                 ELBO_grad += val
             count += 1
+            #if (abs(val[0]) > 100) or (abs(val[1]) > 100):
+                #print(val)
+                #print(s, gradq(s), dist_lik(s), dist_pr(s), dist_q(s))
             
             
         
         #print(torch.mean(torch.cat(ELBOs)).data.numpy(), qentropy.data.numpy(), "***")
         
         grad = ELBO_grad/count
+        grad = np.clip(grad, -30, 30)
         #print(grad)
+        #print('***********')
+        
     
         return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
     
@@ -339,9 +349,6 @@ class Button ():
         return models.MLP_cont(INPUT_SIZE, DIM, nhid, None, Button.VI_loss_function_grad)
     
     def data_gen(self, ps, lik_var, N_trials):
-        '''
-        TODO: revise
-        '''
         
         lik_sd = np.sqrt(lik_var)
         N_blocks = len(ps)
@@ -354,18 +361,18 @@ class Button ():
         for i, p in enumerate(ps):
             
             vals = np.random.normal(p, lik_sd, N_trials)
-            prvs = vals.copy()
-            prvs[1:] = prvs[:-1]
-            prvs[0] = 0
+            #prvs = vals.copy()
+            #prvs[1:] = prvs[:-1]
+            #prvs[0] = 0
             
-            N_b = (1.0*np.arange(N_trials))
+            N_b = (1.0*np.arange(N_trials)) + 1.0 
             #N_b = (1.0*(np.arange(N_trials) + 1.0))/N_trials
             
-            msf = np.cumsum(vals)/(N_b + 1.0)
-            msf[1:] = msf[:-1]
-            msf[0] = 0
+            msf = np.cumsum(vals)/(N_b)
+            #msf[1:] = msf[:-1]
+            #msf[0] = 0
                 
-            last[i*N_trials : (i+1)*N_trials, 0] = prvs
+            last[i*N_trials : (i+1)*N_trials, 0] = vals#prvs
             m_so_far[i*N_trials : (i+1)*N_trials, 0] = msf
             Ns[i*N_trials : (i+1)*N_trials, 0] = N_b
             
