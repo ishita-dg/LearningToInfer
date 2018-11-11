@@ -318,7 +318,6 @@ class Button ():
         count = 0
         while count < nsamps:
             s = np.random.normal(qmu, np.exp(qlsd))
-            #ELBO = dist_lik.log_prob(s) + dist_pr.log_prob(s)
             if np.isinf(target[1,1]):
                 val = gradq(s) * (dist_pr(s) - dist_q(s))
             else:
@@ -328,16 +327,9 @@ class Button ():
             else:
                 ELBO_grad += val
             count += 1
-            #if (abs(val[0]) > 100) or (abs(val[1]) > 100):
-                #print(val)
-                #print(s, gradq(s), dist_lik(s), dist_pr(s), dist_q(s))
-            
-            
-        
-        #print(torch.mean(torch.cat(ELBOs)).data.numpy(), qentropy.data.numpy(), "***")
         
         grad = ELBO_grad/count
-        grad = np.clip(grad, -30, 30)
+        grad = np.clip(grad, -60, 60)
         #print(grad)
         #print('***********')
         

@@ -22,7 +22,7 @@ ID_all_ams = []
 UD_all_hrms = []
 UD_all_ams = []
 
-for part_number in np.arange(6):
+for part_number in np.arange(20):
   print("Participant numpber ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -167,18 +167,21 @@ UD_all_ams = np.reshape(np.array(UD_all_ams), (-1))
 # Plotting
 f, ax = plt.subplots(1, 1)
 jump = 2.0
-bins = np.arange(0, 16.0, jump)
 ID_means = []
 UD_means = []
+
+bins = np.arange(0, 18.0, jump)
 digitized = np.digitize(np.abs(ID_all_hrms), bins)
 for d in np.arange(len(bins)):
   ID_means.append(np.mean(np.abs(ID_all_ams)[digitized == d+1]))
+ax.plot(bins+jump/2.0,ID_means, label = 'Inf Data')
+
+bins = np.arange(0, 13.0, jump)
 digitized = np.digitize(np.abs(UD_all_hrms), bins)
 for d in np.arange(len(bins)):
   UD_means.append(np.mean(np.abs(UD_all_ams)[digitized == d+1]))
-
-ax.plot(bins+jump/2.0,ID_means, label = 'Inf Data')
 ax.plot(bins+jump/2.0,UD_means, label = 'Uninf Data')
+
 ax.plot([0, 20], [0, 20], c = 'k')
 
 plt.legend()
