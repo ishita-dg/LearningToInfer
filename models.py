@@ -12,25 +12,57 @@ import copy
 
 torch.manual_seed(1)
 
+class RbfNet(nn.Module):
+    def __init__(self, centers, num_class=10):
+        super(RbfNet, self).__init__()
+        self.num_class = num_class
+        self.num_centers = centers.size(0)
+
+        self.centers = nn.Parameter(centers)
+        self.beta = nn.Parameter(torch.ones(1,self.num_centers)/10)
+        self.linear = nn.Linear(self.num_centers, self.num_class, bias=True)
+        utils.initialize_weights(self)
+
+
+    def forward(self, batches):
+        radial_val = self.kernel_fun(batches)
+        class_score = self.linear(radial_val)
+        return class_score
+
+
 
 class MLP_disc(nn.Module): 
 
-    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
+    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad, 
+                 nonlin):
         super(MLP_disc, self).__init__()
         self.out_dim = output_size
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
         self.loss_function_grad = loss_function_grad
+        
+        self.num_centers = nhid
+        self.centers = nn.Parameter(torch.zeros(self.num_centers))
+        self.beta = nn.Parameter(torch.ones(self.num_centers)/10)
+        self.nonlin = nonlin
+        
         return
+    
+    def kernel_fun(self, x):
+        return torch.exp(-self.beta.mul((x-self.centers).pow(2) ) )
 
     def forward(self, x):
         x = self.fc1(x)
-        x = F.tanh(x)
+        if 'tanh' in self.nonlin: 
+            x = F.tanh(x)
+        elif 'rbf' in self.nonlin:
+            x = self.kernel_fun(x)
+
         x = self.fc2(x)
-        #x = F.log_softmax(x)
         return x
     
+       
     def def_newgrad(self, yval, target):
             y = self.loss_function_grad(yval, target)
             self.newgrad = lambda x : y    
@@ -53,6 +85,7 @@ class MLP_disc(nn.Module):
                     
                 elif self.loss_function_grad is not None:
                     loss = nn.MSELoss()(yval, target.view(1,-1))
+                    #loss = nn.MSELoss()(yval, target.view(1,-1)[0,:2])
                     #loss = nn.MSELoss()(yval, target)
                     self.def_newgrad(yval, target)
                 
@@ -103,20 +136,33 @@ class MLP_disc(nn.Module):
 
 class MLP_cont(nn.Module): 
 
-    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad):
+    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad, nonlin):
         super(MLP_cont, self).__init__()
+        self.out_dim = output_size
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc_opt = nn.Linear(nhid, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
         self.loss_function = loss_function
         self.loss_function_grad = loss_function_grad
+        
+        self.num_centers = nhid
+        self.centers = nn.Parameter(torch.zeros(self.num_centers))
+        self.beta = nn.Parameter(torch.ones(self.num_centers)/10)
+        self.nonlin = nonlin
+        
         return
+    
+    def kernel_fun(self, x):
+        return torch.exp(-self.beta.mul((x-self.centers).pow(2) ) )
 
     def forward(self, x):
         x = self.fc1(x)
-        x = F.tanh(x)
+        #x = F.tanh(x)
         #x = self.fc_opt(x)
-        #x = F.softmax(x)
+        if 'tanh' in self.nonlin: 
+            x = F.tanh(x)
+        elif 'rbf' in self.nonlin:
+            x = self.kernel_fun(x)
         x = self.fc2(x)
         return x
     

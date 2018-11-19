@@ -18,7 +18,8 @@ import json
 hrms = []
 ams = []
 
-for part_number in np.arange(20):
+for part_number in np.arange(6):
+  print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -27,7 +28,8 @@ for part_number in np.arange(20):
                                    'L2': 0.0,
                                    'train_lr': 0.01,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2},
+            'network_params': {'NHID': 2,
+                               'NONLIN' : 'rbf'},
             'N_balls' : 15,
             'train_blocks' : 100,
             'N_trials' : 2}
@@ -60,12 +62,13 @@ for part_number in np.arange(20):
   OUT_DIM = 2
   INPUT_SIZE = 5 #data, lik1, lik2, prior, N
   NHID = config['network_params']['NHID']
+  NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
   # Informative data vs uninformative data
   
-  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   
   train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha = 0.27)

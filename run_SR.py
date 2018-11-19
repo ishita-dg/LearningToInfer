@@ -22,7 +22,7 @@ ID_all_ams = []
 UD_all_hrms = []
 UD_all_ams = []
 
-for part_number in np.arange(20):
+for part_number in np.arange(5):
   print("Participant numpber ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -31,7 +31,8 @@ for part_number in np.arange(20):
                                    'L2': 0.0,
                                    'train_lr': 0.02,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2}}
+            'network_params': {'NHID': 2,
+                               'NONLIN' : 'tanh'}}
   
   # Run model for reanalysis of Sam's experiment (SR)
   
@@ -59,6 +60,7 @@ for part_number in np.arange(20):
   OUT_DIM = 2 #mu and sigma
   INPUT_SIZE = 3 #obs, mean_so_far, N in block
   NHID = config['network_params']['NHID']
+  NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
@@ -67,7 +69,7 @@ for part_number in np.arange(20):
   prior_variance = 144.0
   lik_variance = 25.0
   
-  ID_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  ID_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   ID_rational_model = expt.get_rationalmodel(prior_variance, lik_variance, N_trials) 
   ID_block_vals =  expt.assign_PL(N_blocks, prior_variance)
   ID_X = expt.data_gen(ID_block_vals, lik_variance, N_trials)
@@ -75,7 +77,7 @@ for part_number in np.arange(20):
   prior_variance = 36.0
   lik_variance = 25.0
   
-  UD_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  UD_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   UD_rational_model = expt.get_rationalmodel(prior_variance, lik_variance, N_trials) 
   UD_block_vals =  expt.assign_PL(N_blocks, prior_variance)
   UD_X = expt.data_gen(UD_block_vals, lik_variance, N_trials)

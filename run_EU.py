@@ -23,7 +23,8 @@ UD_all_hrms = []
 UD_all_ams = []
 UD_all_priors = []
 
-for part_number in np.arange(6):
+for part_number in np.arange(30):
+  print("Participant number, ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
             'optimization_params': {'train_epoch': 50,
@@ -31,7 +32,8 @@ for part_number in np.arange(6):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2}}
+            'network_params': {'NHID': 1,
+                               'NONLIN' : 'rbf'}}
   
   # Run results for Eric's Urn experiment (EU)
   
@@ -61,18 +63,19 @@ for part_number in np.arange(6):
   OUT_DIM = 2
   INPUT_SIZE = 5 #data, lik1, lik2, prior, N
   NHID = config['network_params']['NHID']
+  NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
   # Informative data vs uninformative data
   
-  ID_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  ID_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   ID_rational_model = expt.get_rationalmodel(N_trials) 
   ID_block_vals =  expt.assign_PL_EU(N_balls, N_blocks, True)
   ID_X = expt.data_gen(ID_block_vals, N_trials)
   
   
-  UD_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  UD_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   UD_rational_model = expt.get_rationalmodel(N_trials) 
   UD_block_vals =  expt.assign_PL_EU(N_balls, N_blocks, False)
   UD_X = expt.data_gen(UD_block_vals, N_trials)
@@ -175,12 +178,12 @@ fig, ax = plt.subplots(1, 1)
 ID_clip_mask, ID_priors, ID_ARs = utils.find_AR(ID_all_hrms, 
                           ID_all_ams, 
                           1.0 - ID_all_priors, 
-                          randomize = False, clip = [-100.0, 100])
+                          randomize = False, clip = [-0.0, 100])
 
 UD_clip_mask, UD_priors, UD_ARs = utils.find_AR(UD_all_hrms, 
                           UD_all_ams, 
                           1.0 - UD_all_priors, 
-                          randomize = False, clip = [-100.0, 100])
+                          randomize = False, clip = [-0.0, 100])
 
 
 ID_ARs = ID_ARs[ID_clip_mask]
@@ -204,6 +207,7 @@ ax.bar([0, 1],
        [np.mean(ID_ARs), np.mean(UD_ARs)], 
        yerr = [1.96*np.std(ID_ARs)/(np.sqrt(len(ID_ARs))), 1.96*np.std(UD_ARs)/(np.sqrt(len(UD_ARs)))])
 ax.set_xticks([0, 1])
+ax.axhline(1.0, linestyle = ':', c = 'k')
 ax.set_xticklabels(['Informative Data', 'Uninformative Data'])
 ax.set_ylabel('AR on test')
 

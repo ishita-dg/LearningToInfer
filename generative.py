@@ -89,9 +89,9 @@ class Urn ():
 
        
     
-    def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid):
+    def get_approxmodel(self, NUM_LABELS, INPUT_SIZE, nhid, nonlin):
         
-        return models.MLP_disc(INPUT_SIZE, NUM_LABELS, nhid, None, Urn.VI_loss_function_grad)
+        return models.MLP_disc(INPUT_SIZE, NUM_LABELS, nhid, None, Urn.VI_loss_function_grad, nonlin)
     
     
         #return models.MLP_disc(INPUT_SIZE, 2, nhid, loss_function = nn.KLDivLoss())
@@ -142,8 +142,9 @@ class Urn ():
                 else:
                     delN = 0
                 delNs.append(delN)
-                
-            Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1]                
+            
+            delNs = np.array(delNs)    
+            Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1] / 20.0              
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
             lik1s[i*N_trials : (i+1)*N_trials, 0] = l1 * np.ones(N_trials)
             lik2s[i*N_trials : (i+1)*N_trials, 0] = l2 * np.ones(N_trials)            
@@ -329,7 +330,7 @@ class Button ():
             count += 1
         
         grad = ELBO_grad/count
-        grad = np.clip(grad, -60, 60)
+        grad = np.clip(grad, -10, 10)
         #print(grad)
         #print('***********')
         
@@ -337,8 +338,8 @@ class Button ():
         return autograd.Variable(torch.Tensor(grad).type(torch.FloatTensor).view(1,-1)   )
     
     
-    def get_approxmodel(self, DIM, INPUT_SIZE, nhid):
-        return models.MLP_cont(INPUT_SIZE, DIM, nhid, None, Button.VI_loss_function_grad)
+    def get_approxmodel(self, DIM, INPUT_SIZE, nhid, nonlin):
+        return models.MLP_cont(INPUT_SIZE, DIM, nhid, None, Button.VI_loss_function_grad, nonlin)
     
     def data_gen(self, ps, lik_var, N_trials):
         

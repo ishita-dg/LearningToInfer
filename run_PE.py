@@ -20,16 +20,20 @@ all_priors = []
 conds = []
 Ns = []
 
-for part_number in np.arange(20):
+for part_number in np.arange(30):
+  
+  print("Participant number, ", part_number + 1)
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 30,
+            'optimization_params': {'train_epoch': 50,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.05,
+                                   'train_lr': 0.02,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 4}}
+           'network_params': {'NHID': 1,
+                              'NONLIN' : 'rbf'}}
+  
   
   # Run results for reanalysis of Philip and Edwards (PE)
   
@@ -41,7 +45,7 @@ for part_number in np.arange(20):
   
   N_trials = 20
   
-  train_blocks = 10
+  train_blocks = 15
   test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
@@ -59,12 +63,13 @@ for part_number in np.arange(20):
   OUT_DIM = 2
   INPUT_SIZE = 5 #data, lik1, lik2, prior, N
   NHID = config['network_params']['NHID']
+  NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
   # Informative data vs uninformative data
   
-  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
   indices = np.repeat(block_vals[-1], N_trials)
@@ -131,13 +136,14 @@ conds = np.reshape(np.array(conds), (-1))
 Ns = np.reshape(np.array(Ns), (-1))
   
 
-# Plotting
+
 clip_mask, _, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
 
 ARs = ARs[clip_mask]
 conds = conds[clip_mask]
 Ns = Ns[clip_mask]
 
+# Plotting
 fig, ax = plt.subplots(1, 1)
 for cond in np.sort(np.unique(conds)):
   mask = conds == cond
@@ -147,13 +153,13 @@ for cond in np.sort(np.unique(conds)):
   Xs = []
   ps = np.sort(np.unique(x))
   for p in ps:
-    if sum(x == p) > len(x)/50.0:
+    if sum(x == p) > len(x)/30.0:
       Y_means.append(np.mean(y[x == p]))
       Y_errs.append(np.std(y[x == p]))
-      Xs.append(p)
+      Xs.append(p*20)
   ax.plot(Xs, Y_means, label = str(cond))
-  ax.set_xlim([-6, 15])
-  ax.set_ylim([-1, 10])
+  ax.set_xlim([-6, 18])
+  ax.set_ylim([0.0, 3])
   ax.axhline(1.0, c = 'k')
   ax.axvline(0.0, c = 'k')
   #ax.scatter(x,y, label = str(cond))

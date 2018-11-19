@@ -20,7 +20,7 @@ ams = []
 all_priors = []
 conds = []
 
-for part_number in np.arange(20):
+for part_number in np.arange(60):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
@@ -30,7 +30,8 @@ for part_number in np.arange(20):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 1}}
+            'network_params': {'NHID': 1,
+                               'NONLIN' : 'rbf'}}
   
   # Run results for reanalysis of Peterson and Miller (PM)
   
@@ -43,7 +44,7 @@ for part_number in np.arange(20):
   N_trials = 1
   
   train_blocks = 200
-  test_blocks = 300
+  test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
   N_balls = 6
@@ -60,12 +61,13 @@ for part_number in np.arange(20):
   OUT_DIM = 2
   INPUT_SIZE = 5 #data, lik1, lik2, prior, N
   NHID = config['network_params']['NHID']
+  NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
   # Informative data vs uninformative data
   
-  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
+  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
   indices = np.repeat(block_vals[-1], N_trials)

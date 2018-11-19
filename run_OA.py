@@ -31,7 +31,6 @@ def KLs(model, objects, cond_dists):
 
 #*************************************
 
-
 # Modify in the future to read in / sysarg
 config = {'N_part' : 0,
           'optimization_params': {'train_epoch': 30,
@@ -39,9 +38,12 @@ config = {'N_part' : 0,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
                                  'test_lr' : 0.01},
-          'network_params': {'NHID': 10}}
+          'network_params': {'NHID': 10,
+                             'NONLIN' : 'tanh'}}
 
 # Run results for old sample-based amortization experiment (OA)
+sub_highKL = []
+sub_lowKL = []
 
 expt = generative.Urn()
 expt_name = "OA"
@@ -74,6 +76,7 @@ test_lr = config['optimization_params']['test_lr']
 OUT_DIM = N_objects
 INPUT_SIZE = N_dim #data, lik1, lik2, prior, N
 NHID = config['network_params']['NHID']
+NONLIN = config['network_params']['NONLIN']
 
 storage_id = utils.make_id(config)
 
@@ -114,9 +117,6 @@ log_joint = log_joint.type(torch.FloatTensor)
 train_data = {'X': objects,
               'log_joint': log_joint}
 
-# Make approximate model
-approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID)
-
 
 KLmat = np.zeros((N_hp_objects, N_hp_objects))
 for i in np.arange(N_hp_objects):
@@ -124,89 +124,122 @@ for i in np.arange(N_hp_objects):
                   KLmat[i,j] = utils.find_KL(conditionals[high_po_indicator][i, ], conditionals[high_po_indicator][j, ])
 
 
-fig, ax = plt.subplots()
-im = ax.imshow(KLmat, cmap=plt.get_cmap('hot'), interpolation='nearest',
-               vmin=0, vmax=5)
-fig.colorbar(im)
-plt.savefig('figs/KLheatmap')
+#fig, ax = plt.subplots()
+#im = ax.imshow(KLmat, cmap=plt.get_cmap('hot'), interpolation='nearest',
+               #vmin=0, vmax=5)
+#fig.colorbar(im)
+#plt.savefig('figs/KLheatmap')
 
 print("Median KL = ", np.median(KLmat[~np.eye(N_hp_objects, dtype=bool)]))
 
-#training models
-approx_model.optimizer = optim.SGD(approx_model.parameters(), 
-                                   lr=train_lr, 
-                                   weight_decay = L2)
-approx_model.train(train_data, train_epoch)
-utils.save_model(approx_model, name = storage_id + 'trained_model')
 
-# Small stochastic updates when answering Q1
+for part_number in np.arange(50):
+         print("Participant number, ", part_number)
+         
+  
+         # Make approximate model
+         approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
+         
+         #training models
+         approx_model.optimizer = optim.SGD(approx_model.parameters(), 
+                                            lr=train_lr, 
+                                            weight_decay = L2)
+         approx_model.train(train_data, train_epoch)
+         utils.save_model(approx_model, name = storage_id + 'trained_model')
+         
+         # Small stochastic updates when answering Q1
+         
+         subadditive = np.empty((N_hp_objects, N_hp_objects))
+         superadditive = np.empty((N_hp_objects, N_hp_objects))
+         
+         approx_model.optimizer = optim.SGD(approx_model.parameters(), 
+                                    lr=0.0)
+         tested_data = approx_model.test(train_data, 1, 1)
+         base = tested_data['y_am'].numpy()[np.outer(high_po_indicator, high_po_indicator)]
+         base = base.reshape((N_hp_objects, -1))
+         
+         for i, co in enumerate(np.arange(N_objects)[high_po_indicator]):
+                  for j, qo in enumerate(np.arange(N_objects)[high_po_indicator]):
+                           if (co != qo):                           
+                                    
+                                    sub_log_joint = copy.deepcopy(log_joint)
+                                    sub_log_joint[co, qo] += np.log(5)
+                                    
+                                    sub_train_data = {'X': objects[co, :].view(1, -1),
+                                                      'log_joint': sub_log_joint[co, :].view(1, -1)}
+                                    
+                                    model = copy.deepcopy(approx_model)
+                                    model.optimizer = optim.SGD(model.parameters(), 
+                                                                lr=test_lr)
+                                    model.train(sub_train_data, test_epoch)
+                                    
+                                    tested_data = model.test(train_data, 1, 1)
+                                    subadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
+                                    
+                                    #**************************
+                                    
+                                    super_log_joint = copy.deepcopy(log_joint)
+                                    super_log_joint[co, qo] -= np.log(5)
+                                    
+                                    super_train_data = {'X': objects[co, :].view(1, -1),
+                                                      'log_joint': super_log_joint[co, :].view(1, -1)}
+                                    
+                                    model = copy.deepcopy(approx_model)
+                                    model.optimizer = optim.SGD(model.parameters(), 
+                                                                lr=test_lr)
+                                    model.train(super_train_data, test_epoch)
+                                    
+                                    tested_data = model.test(train_data, 1, 1)
+                                    superadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
+                                    
+         
+         K = 5
+         sub = 1.0 - (1.0 - subadditive[~np.eye(N_hp_objects, dtype=bool)])**K
+         super = 1.0 - (1.0 - superadditive[~np.eye(N_hp_objects, dtype=bool)])**K
+         control = 1.0 - (1.0 - base[~np.eye(N_hp_objects, dtype=bool)])**K
+         KLs = KLmat[~np.eye(N_hp_objects, dtype=bool)]
+         highKL_vals = 100*np.vstack(((sub-control)[KLs > np.median(KLs)], 
+                                  (super-control)[KLs > np.median(KLs)]))
+         lowKL_vals = 100*np.vstack(((sub-control)[KLs < np.median(KLs)], 
+                                  (super-control)[KLs < np.median(KLs)]))
+         
+         sub_highKL.append(highKL_vals[0])
+         sub_lowKL.append(lowKL_vals[0])
 
-subadditive = np.empty((N_hp_objects, N_hp_objects))
-superadditive = np.empty((N_hp_objects, N_hp_objects))
+sub_highKL = np.reshape(np.array(sub_highKL), (-1))
+sub_lowKL = np.reshape(np.array(sub_lowKL), (-1))
 
-approx_model.optimizer = optim.SGD(approx_model.parameters(), 
-                           lr=0.0)
-tested_data = approx_model.test(train_data, 1, 1)
-base = tested_data['y_am'].numpy()[np.outer(high_po_indicator, high_po_indicator)]
-base = base.reshape((N_hp_objects, -1))
 
-for i, co in enumerate(np.arange(N_objects)[high_po_indicator]):
-         for j, qo in enumerate(np.arange(N_objects)[high_po_indicator]):
-                  if (co != qo):                           
-                           
-                           sub_log_joint = copy.deepcopy(log_joint)
-                           sub_log_joint[co, qo] += np.log(5)
-                           
-                           sub_train_data = {'X': objects[co, :].view(1, -1),
-                                             'log_joint': sub_log_joint[co, :].view(1, -1)}
-                           
-                           model = copy.deepcopy(approx_model)
-                           model.optimizer = optim.SGD(model.parameters(), 
-                                                       lr=test_lr)
-                           model.train(sub_train_data, test_epoch)
-                           
-                           tested_data = model.test(train_data, 1, 1)
-                           subadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
-                           
-                           #**************************
-                           
-                           super_log_joint = copy.deepcopy(log_joint)
-                           super_log_joint[co, qo] -= np.log(5)
-                           
-                           super_train_data = {'X': objects[co, :].view(1, -1),
-                                             'log_joint': super_log_joint[co, :].view(1, -1)}
-                           
-                           model = copy.deepcopy(approx_model)
-                           model.optimizer = optim.SGD(model.parameters(), 
-                                                       lr=test_lr)
-                           model.train(super_train_data, test_epoch)
-                           
-                           tested_data = model.test(train_data, 1, 1)
-                           superadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
-                           
+f, ax = plt.subplots(1, 1, sharey=True)
+low_KL_mu = np.mean(sub_lowKL)
+low_KL_sd = 1.96*np.std(sub_lowKL)/np.sqrt(sub_lowKL.shape[0])
+high_KL_mu = np.mean(sub_highKL)
+high_KL_sd = 1.96*np.std(sub_highKL)/np.sqrt(sub_highKL.shape[0])
 
-K = 5
-sub = 1.0 - (1.0 - subadditive[~np.eye(N_hp_objects, dtype=bool)])**K
-super = 1.0 - (1.0 - superadditive[~np.eye(N_hp_objects, dtype=bool)])**K
-control = 1.0 - (1.0 - base[~np.eye(N_hp_objects, dtype=bool)])**K
-KLs = KLmat[~np.eye(N_hp_objects, dtype=bool)]
-highKL_vals = 100*np.vstack(((sub-control)[KLs > np.median(KLs)], 
-                         (super-control)[KLs > np.median(KLs)]))
-lowKL_vals = 100*np.vstack(((sub-control)[KLs < np.median(KLs)], 
-                         (super-control)[KLs < np.median(KLs)]))
 
-f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-ax1.bar([0, 1], np.mean(lowKL_vals, axis = 1), 
-        yerr = 1.96*np.std(lowKL_vals, axis = 1)/np.sqrt(lowKL_vals.shape[1]))
-ax1.set_title('Low KL')
-ax1.set_xticks([0, 1])
-ax1.set_xticklabels(['Subadditivity', 'Superadditivity'])
-ax2.bar([0,1], np.mean(highKL_vals, axis = 1), 
-        yerr = 1.96*np.std(highKL_vals, axis = 1)/np.sqrt(highKL_vals.shape[1]))
-ax2.set_title('High KL')
-ax2.set_xticks([0, 1])
-ax2.set_xticklabels(['Subadditivity', 'Superadditivity'])
+ax.bar([0, 1], [low_KL_mu, high_KL_mu], 
+        yerr = [low_KL_sd, high_KL_sd])
+ax.set_title('Change in Subadditivity')
+ax.set_xticks([0, 1])
+ax.set_xticklabels(['low KL', 'high KL'])
 plt.show()
 plt.savefig('figs/Compare_' + storage_id + 'K' + str(K) + '.pdf')
 
+         
+#f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+#ax1.bar([0, 1], np.mean(all_lowKL, axis = 1), 
+        #yerr = 1.96*np.std(all_lowKL, axis = 1)/np.sqrt(all_lowKL.shape[1]))
+#ax1.set_title('Low KL')
+#ax1.set_xticks([0, 1])
+#ax1.set_xticklabels(['Subadditivity', 'Superadditivity'])
+#ax2.bar([0,1], np.mean(all_highKL, axis = 1), 
+        #yerr = 1.96*np.std(highKL, axis = 1)/np.sqrt(all_highKL.shape[1]))
+#ax2.set_title('High KL')
+#ax2.set_xticks([0, 1])
+#ax2.set_xticklabels(['Subadditivity', 'Superadditivity'])
+#plt.show()
+#plt.savefig('figs/Compare_' + storage_id + 'K' + str(K) + '.pdf')
+
+         
+         
          
