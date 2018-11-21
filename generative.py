@@ -210,6 +210,26 @@ class Urn ():
         
         return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))[:, 0], np.array(likls).reshape((-1,2))[:, 1] 
     
+    def assign_PL_CS(self, N_blocks, N_balls, alpha_post, alpha_prior):
+            
+        posts = np.random.beta(alpha_post, alpha_post, N_blocks)
+        ps = np.random.beta(alpha_prior, alpha_prior, N_blocks)
+        likls = []
+        priors = []
+        
+        for prior, post in zip(ps, posts):
+            if np.abs(prior - post) > 0.5:
+                prior = 1.0 - prior
+            x = (post*(1.0 - prior))/(prior*(1.0 - post))
+            edit = x / (1.0 + x)
+            ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
+            
+            likls.append([ep*1.0 / N_balls, 1.0 - ep*1.0 / N_balls])
+            priors.append(prior)
+         
+        
+        return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))[:, 0], np.array(likls).reshape((-1,2))[:, 1] 
+
     def assign_PL_replications(self, N_balls, N_blocks, expt_name):
         
         if expt_name == "PM":
