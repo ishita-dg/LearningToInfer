@@ -22,7 +22,7 @@ ID_all_ams = []
 UD_all_hrms = []
 UD_all_ams = []
 
-for part_number in np.arange(5):
+for part_number in np.arange(10):
   print("Participant numpber ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -189,3 +189,12 @@ ax.plot([0, 20], [0, 20], c = 'k')
 plt.legend()
 plt.show()
 plt.savefig('figs/Updates_' + storage_id +'.pdf')
+
+
+plot_data = {'ID_ams': ID_all_ams,
+             'UD_ams': UD_all_ams,
+             'ID_hrms': ID_all_hrms,
+             'UD_hrms': UD_all_hrms}
+
+utils.save_data(plot_data, name = storage_id + 'plot_data')
+

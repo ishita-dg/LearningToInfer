@@ -20,7 +20,7 @@ ams = []
 all_priors = []
 conds = []
 
-for part_number in np.arange(60):
+for part_number in np.arange(40):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
@@ -139,6 +139,10 @@ conds = all_conds[clip_mask]
 fig, ax = plt.subplots(1, 1)
 jump = 0.1
 bins = np.arange(0.0, 1.0, jump)
+plot_data = {'x': bins+jump,
+             'priors': priors,
+             'ARs' : ARs,
+             'conds': conds}
 
 for cond in np.sort(np.unique(conds)):
   mask = conds == cond
@@ -152,10 +156,17 @@ for cond in np.sort(np.unique(conds)):
   
   ax.plot(bins+jump, Y_means, label = str(cond))
   ax.axhline(1.0, c = 'k')
+  plot_data['y' + str(cond)] = np.array(Y_means)
   #ax.scatter(x,y, label = str(cond))
-  
+
+
 plt.legend()
 plt.show()
 plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
+        
+
+
+utils.save_data(plot_data, name = storage_id + 'plot_data')
+        
         

@@ -126,6 +126,14 @@ def save_data(input_data, name):
     with open(fn, 'wb') as outfile:
       json.dump(data, outfile, cls=DecimalEncoder)
     return
+  
+
+def load_data(name):
+    fn = './data/' + name
+    
+    with open(fn, 'rb') as outfile:
+      data = json.load(outfile)
+    return data
     
 def save_model(model, name):
     fn = './data/' + name

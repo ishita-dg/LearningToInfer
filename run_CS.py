@@ -21,7 +21,7 @@ atyp_ams = []
 typ_hrms = []
 typ_ams = []
 
-for part_number in np.arange(4):
+for part_number in np.arange(10):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
@@ -49,7 +49,7 @@ for part_number in np.arange(4):
   N_trials = config['N_trials']
   
   train_blocks = config['train_blocks']
-  test_blocks = 30
+  test_blocks = 10
   
   N_balls = config['N_balls']
   
@@ -152,15 +152,13 @@ ax2.plot(atyp_hrms, atyp_hrms*slope + intercept, c = 'k')
 ax2.plot([0.0, 1.0], [0.0, 1.0], c = 'k', linestyle = ':')
 ax2.set_title("Atypical")
 print "r-squared:", r_value**2
-#ax1.scatter(test_data['y_hrm'][:, 1], test_data['y_am'][:, 1])
-#ax1.set_xlim([-0.1, 1.1])
-#ax1.set_ylim([-0.1, 1.1])
-#ax1.plot([0.0, 1.0], [0.0, 1.0], c = 'k')
-#ax1.axvline(0.5, c = 'k')
-#ax1.set_title("Conservatism effect")
-
-#ax2.plot(bins+jump/2.0, Y_vars, label = 'Beta = 0.27')
-#ax2.set_title("Variance effect")
 
 plt.show()
 plt.savefig('figs/Precision_' + storage_id +'.pdf')
+
+
+plot_data = {'typ_am': typ_ams,
+             'atyp_hrm': atyp_ams,
+             'typ_hrm': typ_ams,
+             'atyp_hrm': atyp_ams}
+utils.save_data(plot_data, name = storage_id + 'plot_data')

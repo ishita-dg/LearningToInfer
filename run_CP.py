@@ -18,7 +18,7 @@ import json
 hrms = []
 ams = []
 
-for part_number in np.arange(6):
+for part_number in np.arange(10):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
@@ -148,3 +148,14 @@ ax2.set_title("Variance effect")
 plt.legend()
 plt.show()
 plt.savefig('figs/Conservatism_' + storage_id +'.pdf')
+    
+
+plot_data = {'x': bins + jump/2.0,
+             'var': Y_vars,
+             'mean': Y_mean,
+             'all_ams': ams,
+             'all_hrms': hrms}
+
+utils.save_data(plot_data, name = storage_id + 'plot_data')
+        
+        

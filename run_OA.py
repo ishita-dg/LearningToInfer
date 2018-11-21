@@ -133,7 +133,7 @@ for i in np.arange(N_hp_objects):
 print("Median KL = ", np.median(KLmat[~np.eye(N_hp_objects, dtype=bool)]))
 
 
-for part_number in np.arange(50):
+for part_number in np.arange(10):
          print("Participant number, ", part_number)
          
   
@@ -145,7 +145,7 @@ for part_number in np.arange(50):
                                             lr=train_lr, 
                                             weight_decay = L2)
          approx_model.train(train_data, train_epoch)
-         utils.save_model(approx_model, name = storage_id + 'trained_model')
+         #utils.save_model(approx_model, name = storage_id + 'trained_model')
          
          # Small stochastic updates when answering Q1
          
@@ -226,20 +226,9 @@ plt.show()
 plt.savefig('figs/Compare_' + storage_id + 'K' + str(K) + '.pdf')
 
          
-#f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-#ax1.bar([0, 1], np.mean(all_lowKL, axis = 1), 
-        #yerr = 1.96*np.std(all_lowKL, axis = 1)/np.sqrt(all_lowKL.shape[1]))
-#ax1.set_title('Low KL')
-#ax1.set_xticks([0, 1])
-#ax1.set_xticklabels(['Subadditivity', 'Superadditivity'])
-#ax2.bar([0,1], np.mean(all_highKL, axis = 1), 
-        #yerr = 1.96*np.std(highKL, axis = 1)/np.sqrt(all_highKL.shape[1]))
-#ax2.set_title('High KL')
-#ax2.set_xticks([0, 1])
-#ax2.set_xticklabels(['Subadditivity', 'Superadditivity'])
-#plt.show()
-#plt.savefig('figs/Compare_' + storage_id + 'K' + str(K) + '.pdf')
+plot_data = {'sub_lowKL': sub_lowKL,
+             'sub_highKL': sub_highKL}
 
-         
-         
-         
+utils.save_data(plot_data, name = storage_id + 'plot_data')
+        
+        

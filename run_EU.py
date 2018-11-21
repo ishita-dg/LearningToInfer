@@ -23,7 +23,7 @@ UD_all_hrms = []
 UD_all_ams = []
 UD_all_priors = []
 
-for part_number in np.arange(30):
+for part_number in np.arange(10):
   print("Participant number, ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -189,20 +189,6 @@ UD_clip_mask, UD_priors, UD_ARs = utils.find_AR(UD_all_hrms,
 ID_ARs = ID_ARs[ID_clip_mask]
 UD_ARs = UD_ARs[UD_clip_mask]
 
-
-#ID_priors = ID_priors[ID_clip_mask]
-#UD_priors = UD_priors[UD_clip_mask]
-#ID_Y_means = []
-#UD_Y_means = []
-#ps = np.sort(np.unique(ID_priors))
-#for p in ps:
-  #ID_Y_means.append(np.mean(ID_ARs[ID_priors == p]))
-  #UD_Y_means.append(np.mean(UD_ARs[UD_priors == p]))
-
-#ax.plot(ps, ID_Y_means, label = 'Inf Data')
-#ax.plot(ps, UD_Y_means, label = 'Uninf Data')
-#ax.axhline(1.0, c = 'k')
-
 ax.bar([0, 1], 
        [np.mean(ID_ARs), np.mean(UD_ARs)], 
        yerr = [1.96*np.std(ID_ARs)/(np.sqrt(len(ID_ARs))), 1.96*np.std(UD_ARs)/(np.sqrt(len(UD_ARs)))])
@@ -218,6 +204,9 @@ plt.savefig('figs/AR_bar' + storage_id + '.pdf')
 
         
 
-        
+plot_data = {'ID_ARs': ID_ARs,
+             'UD_ARs': UD_ARs}
+
+utils.save_data(plot_data, name = storage_id + 'plot_data')
         
         
