@@ -1,6 +1,0 @@
-#!/bin/bash
-# Basic range in for loop
-python run_OA.py
-python run_PE.py
-python run_SR.py
-python run_CP.py

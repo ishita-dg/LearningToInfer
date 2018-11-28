@@ -15,6 +15,11 @@ import sys
 import json
 
 
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 30
+
 #*************************************
 
 def KLs(model, objects, cond_dists):
@@ -32,14 +37,14 @@ def KLs(model, objects, cond_dists):
 #*************************************
 
 # Modify in the future to read in / sysarg
-config = {'N_part' : 0,
+config = {'N_part' : total_part - 1,
           'optimization_params': {'train_epoch': 30,
                                  'test_epoch': 5,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
                                  'test_lr' : 0.01},
           'network_params': {'NHID': 10,
-                             'NONLIN' : 'tanh'}}
+                             'NONLIN' : 'rbf'}}
 
 # Run results for old sample-based amortization experiment (OA)
 sub_highKL = []
@@ -133,7 +138,7 @@ for i in np.arange(N_hp_objects):
 print("Median KL = ", np.median(KLmat[~np.eye(N_hp_objects, dtype=bool)]))
 
 
-for part_number in np.arange(10):
+for part_number in np.arange(total_part):
          print("Participant number, ", part_number)
          
   

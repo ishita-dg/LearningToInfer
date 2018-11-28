@@ -14,7 +14,10 @@ import sys
 import json
 
 
-
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 20
   
 ID_all_hrms = []
 ID_all_ams = []
@@ -22,7 +25,7 @@ ID_all_ams = []
 UD_all_hrms = []
 UD_all_ams = []
 
-for part_number in np.arange(10):
+for part_number in np.arange(total_part):
   print("Participant numpber ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
@@ -166,6 +169,7 @@ ID_all_ams = np.reshape(np.array(ID_all_ams), (-1))
 UD_all_hrms = np.reshape(np.array(UD_all_hrms), (-1))
 UD_all_ams = np.reshape(np.array(UD_all_ams), (-1))
 
+
 # Plotting
 f, ax = plt.subplots(1, 1)
 jump = 2.0
@@ -190,11 +194,38 @@ plt.legend()
 plt.show()
 plt.savefig('figs/Updates_' + storage_id +'.pdf')
 
+## Plotting
+#f, ax = plt.subplots(1, 1)
+#jump = 2.0
+#ID_means = []
+#UD_means = []
+
+#a_mu = lambda x: np.mean(np.abs(x))
+#a_er = lambda x: 1.96 * np.std(np.abs(x)) / (np.sqrt(len(x)))
+#ticks = [0, 0.4, 1, 1.4]
+
+#ax.bar(ticks, 
+       #[a_mu(ID_all_ams), a_mu(ID_all_hrms), a_mu(UD_all_ams), a_mu(UD_all_hrms)], 
+       #yerr = [a_er(ID_all_ams), a_er(ID_all_hrms), a_er(UD_all_ams), a_er(UD_all_hrms)], width = 0.15)
+#ax.set_xticks(ticks)
+#ax.set_xticklabels(['ID model', 'ID true', 'UD model', 'UD true'])
+#ax.set_ylabel('Update')
+
+
+#plt.legend()
+#plt.show()
+#plt.savefig('figs/updates_bar' + storage_id + '.pdf')
+
+    
 
 plot_data = {'ID_ams': ID_all_ams,
              'UD_ams': UD_all_ams,
              'ID_hrms': ID_all_hrms,
-             'UD_hrms': UD_all_hrms}
+             'UD_hrms': UD_all_hrms,
+             'x': bins + jump/2.0,
+             'UD_means': np.array(UD_means),
+             'ID_means': np.array(ID_means)}
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
+
 

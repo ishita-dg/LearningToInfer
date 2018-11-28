@@ -167,6 +167,8 @@ def plot_1D(ax, func, xlimits=[-20, 20], numticks=101):
     ax.set_xticks([])
     
 def find_AR(bayes_post, subj_post, prior, randomize = False, clip = [-1000, 1000]):
+  bayes_post = np.clip(bayes_post, 0.00000001, 0.99999999)
+  subj_post = np.clip(subj_post, 0.00000001, 0.99999999)
   if randomize:
     which_urn = np.random.binomial(1, 0.5, bayes_post.shape)
     bayes_post, subj_post, prior = (which_urn*[bayes_post, subj_post, prior] + 

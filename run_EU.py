@@ -14,6 +14,10 @@ import sys
 import json
 
 
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 10
   
 ID_all_hrms = []
 ID_all_ams = []
@@ -23,14 +27,14 @@ UD_all_hrms = []
 UD_all_ams = []
 UD_all_priors = []
 
-for part_number in np.arange(10):
+for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
             'optimization_params': {'train_epoch': 50,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.05,
+                                   'train_lr': 0.02,
                                    'test_lr' : 0.0},
             'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'}}

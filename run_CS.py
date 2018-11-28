@@ -16,12 +16,17 @@ import json
 
 
 
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 20
+  
 atyp_hrms = []
 atyp_ams = []
 typ_hrms = []
 typ_ams = []
 
-for part_number in np.arange(10):
+for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
@@ -32,13 +37,14 @@ for part_number in np.arange(10):
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
             'network_params': {'NHID': 1,
-                               'NONLIN' : 'tanh'},
-            'N_balls' : 10,
+                               'NONLIN' : 'rbf'},
+            'N_balls' : 20,
             'train_blocks' : 200,
             'N_trials' : 1,
-            'fac': 2}
+            'fac': 0.33}
   
-  # Run results for Correction Prior (CP)
+  
+  fac = np.random.choice([config['fac'], 1.0/config['fac']], 1)
   
   expt = generative.Urn()
   expt_name = "CS" # PM, PE, SR, EU, CP
@@ -52,8 +58,6 @@ for part_number in np.arange(10):
   test_blocks = 10
   
   N_balls = config['N_balls']
-  
-  fac = config['fac']
   
   # Optimization parameters
   train_epoch = config['optimization_params']['train_epoch']
@@ -76,9 +80,9 @@ for part_number in np.arange(10):
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   
-  train_block_vals =  expt.assign_PL_CS(train_blocks + test_blocks, N_balls, alpha_post = 0.27, alpha_prior = 1.0/fac)
+  train_block_vals =  expt.assign_PL_CS(train_blocks + test_blocks, N_balls, alpha_post = fac, alpha_prior = 1.0)
   train_X = expt.data_gen(train_block_vals, N_trials, N_balls)
-  test_block_vals =  expt.assign_PL_CS(test_blocks, N_balls, alpha_post = 0.27, alpha_prior = fac)
+  test_block_vals =  expt.assign_PL_CS(test_blocks, N_balls, alpha_post = 1.0/fac, alpha_prior = 1.0)
   test_X = expt.data_gen(test_block_vals, N_trials)
   
   # Create the data frames
@@ -130,6 +134,15 @@ typ_hrms = np.reshape(np.array(typ_hrms), (-1))
 
 atyp_ams = np.reshape(np.array(atyp_ams), (-1))
 atyp_hrms = np.reshape(np.array(atyp_hrms), (-1))
+
+notnan = np.logical_not(np.isnan(atyp_ams))
+atyp_ams = atyp_ams[notnan]
+atyp_hrms = atyp_hrms[notnan]
+
+
+notnan = np.logical_not(np.isnan(typ_ams))
+typ_ams = typ_ams[notnan]
+typ_hrms = typ_hrms[notnan]
 
 #which_urn = np.random.binomial(1, 0.5, ams.shape)
 #ams = ams*which_urn + (1 - which_urn)*(1.0 - ams)

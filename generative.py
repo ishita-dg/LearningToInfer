@@ -184,23 +184,23 @@ class Urn ():
         
         return priors, lik0s, lik1s
     
-    def assign_PL_CP(self, N_blocks, N_balls, alpha):
+    def assign_PL_CP(self, N_blocks, N_balls, alpha_post, alpha_pre):
         
-        alpha_post = alpha
-        alpha_pre = 1.0
             
         posts = np.random.beta(alpha_post, alpha_post, N_blocks)
-        pres = np.random.beta(alpha_pre, alpha_pre, N_blocks)
+        pres = 0.5*np.ones(N_blocks)#np.random.beta(alpha_pre, alpha_pre, N_blocks)
         priors = []
         likls = []
         
         for pre, post in zip(pres, posts):
+            if False: #np.abs(pre - post) > 0.5:
+                pre = 1.0 - pre
             x = (post*(1.0 - pre))/(pre*(1.0 - post))
             edit = x / (1.0 + x)
             
             ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
             pp = np.clip(np.round(pre*N_balls), 1, N_balls - 1)
-            if (np.random.uniform() > 0.5):
+            if (np.random.uniform() > 0.0):
                 priors.append(pp*1.0 / N_balls)
                 likls.append([ep*1.0 / N_balls, 1.0 - ep*1.0 / N_balls])
             else:
@@ -212,23 +212,37 @@ class Urn ():
     
     def assign_PL_CS(self, N_blocks, N_balls, alpha_post, alpha_prior):
             
-        posts = np.random.beta(alpha_post, alpha_post, N_blocks)
-        ps = np.random.beta(alpha_prior, alpha_prior, N_blocks)
-        likls = []
-        priors = []
-        
-        for prior, post in zip(ps, posts):
-            if np.abs(prior - post) > 0.5:
-                prior = 1.0 - prior
-            x = (post*(1.0 - prior))/(prior*(1.0 - post))
-            edit = x / (1.0 + x)
-            ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
+        if alpha_post is None:
+            priors = np.random.beta(alpha_prior, alpha_prior, N_blocks)
+            likls = 0.5*np.ones((N_blocks, 2))
+        else:
+            likls = []
+            priors = []  
+            if alpha_post > 1.0:
+                posts = np.random.beta(alpha_post, 1.0, N_blocks)
+            else:
+                posts = np.random.beta(1.0, 1.0/alpha_post, N_blocks)
+            ps = np.random.beta(alpha_prior, alpha_prior, N_blocks)
             
-            likls.append([ep*1.0 / N_balls, 1.0 - ep*1.0 / N_balls])
-            priors.append(prior)
+            for prior, post in zip(ps, posts):
+                if np.abs(prior - post) > 0.5:
+                    prior = 1.0 - prior
+                x = (post*(1.0 - prior))/(prior*(1.0 - post))
+                edit = x / (1.0 + x)
+                ep = np.clip(np.round(edit*N_balls), 1, N_balls - 1)
+                pp = np.clip(np.round(prior*N_balls), 1, N_balls - 1)
+                if (np.random.uniform() > 0.5):
+                    priors.append(pp*1.0 / N_balls)
+                    likls.append([ep*1.0 / N_balls, 1.0 - ep*1.0 / N_balls])
+                else:
+                    priors.append(ep*1.0 / N_balls)
+                    likls.append([pp*1.0 / N_balls, 1.0 - pp*1.0 / N_balls])                
+            
+            priors = np.array(priors).reshape((-1,1))
+            likls = np.array(likls).reshape((-1,2))
          
         
-        return np.array(priors).reshape((-1,1)), np.array(likls).reshape((-1,2))[:, 0], np.array(likls).reshape((-1,2))[:, 1] 
+        return priors, likls[:, 0], likls[:, 1] 
 
     def assign_PL_replications(self, N_balls, N_blocks, expt_name):
         

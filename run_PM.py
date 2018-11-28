@@ -14,13 +14,18 @@ import sys
 import json
 
 
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 50
+
 
 hrms = []
 ams = []
 all_priors = []
 conds = []
 
-for part_number in np.arange(40):
+for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg

@@ -15,24 +15,30 @@ import json
 
 
 
+if len(sys.argv) > 1:
+  total_part = int(sys.argv[1])
+else:
+  total_part = 20
+
 hrms = []
 ams = []
 
-for part_number in np.arange(10):
+for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 40,
+            'optimization_params': {'train_epoch': 30,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.01,
+                                   'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2,
+            'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'},
-            'N_balls' : 15,
+            'N_balls' : 20,
+            'alpha_pre' : 1.0, 
             'train_blocks' : 100,
-            'N_trials' : 2}
+            'N_trials' : 4}
   
   # Run results for Correction Prior (CP)
   
@@ -45,7 +51,7 @@ for part_number in np.arange(10):
   N_trials = config['N_trials']
   
   train_blocks = config['train_blocks']
-  test_blocks = 100
+  test_blocks = 200
   N_blocks = train_blocks + test_blocks
   
   N_balls = config['N_balls']
@@ -71,9 +77,9 @@ for part_number in np.arange(10):
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   
-  train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha = 0.27)
+  train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha_post = 0.27, alpha_pre = config['alpha_pre'])
   train_X = expt.data_gen(train_block_vals, N_trials, N_balls)
-  test_block_vals =  expt.assign_PL_CP(test_blocks, N_balls, alpha = 1.0)
+  test_block_vals =  expt.assign_PL_CP(test_blocks, N_balls, alpha_post = 0.27, alpha_pre = config['alpha_pre'])
   test_X = expt.data_gen(test_block_vals, N_trials)
   
   # Create the data frames
@@ -96,7 +102,7 @@ for part_number in np.arange(10):
                                         lr=train_lr, 
                                         weight_decay = L2)
   approx_model.train(train_data, train_epoch)
-  utils.save_model(approx_model, name = storage_id + 'trained_model')
+  #utils.save_model(approx_model, name = storage_id + 'trained_model')
   
   # testing models
   test_data = rational_model.test(test_data)
@@ -111,10 +117,16 @@ for part_number in np.arange(10):
     else:
       test_data[key] = np.array(test_data[key])
       
-  utils.save_data(test_data, name = storage_id + 'test_data')
-  
-  hrms.append(test_data['y_hrm'][:, 1])
-  ams.append(test_data['y_am'][:, 1])
+  #utils.save_data(test_data, name = storage_id + 'test_data')
+  var = np.var(test_data['y_am'][:, 1])
+  off = np.abs(test_data['y_am'][:, 1] - test_data['y_hrm'][:, 1]) > 0.4
+  # Sometimes the network doesn't learn, 
+  # and those few random times, it messes up the variance pattern
+  if np.sum(off)<10:
+    hrms.append(test_data['y_hrm'][:, 1])
+    ams.append(test_data['y_am'][:, 1])
+  else:
+    print("**********reject this participant")
   
   
 ams = np.reshape(np.array(ams), (-1))
@@ -123,36 +135,55 @@ which_urn = np.random.binomial(1, 0.5, ams.shape)
 ams = ams*which_urn + (1 - which_urn)*(1.0 - ams)
 hrms = hrms*which_urn + (1 - which_urn)*(1.0 - hrms)
 
+notnan = np.logical_not(np.isnan(ams))
+ams = ams[notnan]
+hrms = hrms[notnan]
+
 # Plotting
 f, (ax1, ax2) = plt.subplots(1, 2)
-jump = 0.15
+jump = 0.05
 bins = np.arange(0.0, 1.0, jump)
+x0 = bins + jump/2.0
+p_x = np.arange(-0.1, 1.1, jump)
 Y_means = []
 Y_vars = []
+x = []
 digitized = np.digitize(hrms, bins)
 for d in np.arange(len(bins)):
-  Y_means.append(np.mean(ams[digitized == d+1]))
-  Y_vars.append(np.var(ams[digitized == d+1]))
+  if not np.isnan(np.mean(ams[digitized == d+1])):
+    Y_means.append(np.mean(ams[digitized == d+1]))
+    Y_vars.append(np.var(ams[digitized == d+1]))
+    x.append(x0[d])
 
-ax1.plot(bins+jump/2.0, Y_means, label = 'Beta = 0.27')
-#ax1.scatter(test_data['y_hrm'][:, 1], test_data['y_am'][:, 1])
+x = np.array(x)
+ax1.scatter(x, Y_means, label = 'Beta = 0.27')
+#ax1.scatter(hrms, ams)
 ax1.set_xlim([-0.1, 1.1])
 ax1.set_ylim([-0.1, 1.1])
 ax1.plot([0.0, 1.0], [0.0, 1.0], c = 'k')
 ax1.axvline(0.5, c = 'k')
 ax1.set_title("Conservatism effect")
 
-ax2.plot(bins+jump/2.0, Y_vars, label = 'Beta = 0.27')
+cons_fit_params = np.polyfit(x, Y_means, 1)
+cons_fit = np.poly1d(cons_fit_params)
+ax1.plot(p_x, cons_fit(p_x), c = 'r')
+
+ax2.scatter(x, Y_vars, label = 'Beta = 0.27')
 ax2.set_title("Variance effect")
 
-plt.legend()
+var_fit_params = np.polyfit(x, Y_vars, 2)
+var_fit = np.poly1d(var_fit_params)
+ax2.plot(p_x, var_fit(p_x), c = 'r')
+ax2.plot(p_x, np.mean(Y_vars)*np.ones(len(p_x)), linestyle = ':')
+
+#plt.legend()
 plt.show()
 plt.savefig('figs/Conservatism_' + storage_id +'.pdf')
     
 
 plot_data = {'x': bins + jump/2.0,
-             'var': Y_vars,
-             'mean': Y_mean,
+             'var': np.array(Y_vars),
+             'mean': np.array(Y_means),
              'all_ams': ams,
              'all_hrms': hrms}
 
