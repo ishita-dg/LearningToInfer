@@ -38,11 +38,11 @@ def KLs(model, objects, cond_dists):
 
 # Modify in the future to read in / sysarg
 config = {'N_part' : total_part - 1,
-          'optimization_params': {'train_epoch': 30,
+          'optimization_params': {'train_epoch': 50,
                                  'test_epoch': 5,
                                  'L2': 0.0,
                                  'train_lr': 0.05,
-                                 'test_lr' : 0.01},
+                                 'test_lr' : 0.005},
           'network_params': {'NHID': 10,
                              'NONLIN' : 'rbf'}}
 
@@ -95,13 +95,13 @@ ts = np.random.dirichlet(eta*np.ones(N_objects), 30)
 max = 0
 topic1 = topic2 = ts[0]
 for i, t1 in enumerate(ts):
-         for t2 in ts[i:]:
-                  dist = (utils.find_KL(t1, t2)+
-                          utils.find_KL(t2, t1))
-                  if dist > max:
-                           max = dist
-                           topic1 = t1
-                           topic2 = t2
+    for t2 in ts[i:]:
+      dist = (utils.find_KL(t1, t2)+
+              utils.find_KL(t2, t1))
+      if dist > max:
+        max = dist
+        topic1 = t1
+        topic2 = t2
 
 high_po_indicator = topic1+topic2 > np.median(topic1+topic2)
 N_hp_objects = np.sum(high_po_indicator)
@@ -154,21 +154,22 @@ for part_number in np.arange(total_part):
          
          # Small stochastic updates when answering Q1
          
-         subadditive = np.empty((N_hp_objects, N_hp_objects))
-         superadditive = np.empty((N_hp_objects, N_hp_objects))
+         subadditive = np.nan*np.ones((N_hp_objects, N_hp_objects, N_hp_objects))
+         superadditive = np.nan*np.empty((N_hp_objects, N_hp_objects, N_hp_objects))
          
          approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                     lr=0.0)
          tested_data = approx_model.test(train_data, 1, 1)
          base = tested_data['y_am'].numpy()[np.outer(high_po_indicator, high_po_indicator)]
-         base = base.reshape((N_hp_objects, -1))
+         base = base.reshape((N_hp_objects, N_hp_objects, 1))
+         base = np.tile(base, N_hp_objects)
          
          for i, co in enumerate(np.arange(N_objects)[high_po_indicator]):
                   for j, qo in enumerate(np.arange(N_objects)[high_po_indicator]):
                            if (co != qo):                           
                                     
                                     sub_log_joint = copy.deepcopy(log_joint)
-                                    sub_log_joint[co, qo] += np.log(5)
+                                    sub_log_joint[co, qo] += np.log(20)
                                     
                                     sub_train_data = {'X': objects[co, :].view(1, -1),
                                                       'log_joint': sub_log_joint[co, :].view(1, -1)}
@@ -179,7 +180,9 @@ for part_number in np.arange(total_part):
                                     model.train(sub_train_data, test_epoch)
                                     
                                     tested_data = model.test(train_data, 1, 1)
-                                    subadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
+                                    subadditive[:, j, i] = tested_data['y_am'].numpy()[:, qo][high_po_indicator]
+                                    subadditive[i, j, i] = np.nan
+                                    subadditive[j, j, i] = np.nan
                                     
                                     #**************************
                                     
@@ -195,14 +198,19 @@ for part_number in np.arange(total_part):
                                     model.train(super_train_data, test_epoch)
                                     
                                     tested_data = model.test(train_data, 1, 1)
-                                    superadditive[i, j] = tested_data['y_am'].numpy()[co, qo]
+                                    superadditive[:, j, i] = tested_data['y_am'].numpy()[:, qo][high_po_indicator]
+                                    superadditive[i, j, i] = np.nan
+                                    superadditive[j, j, i] = np.nan
                                     
          
          K = 5
-         sub = 1.0 - (1.0 - subadditive[~np.eye(N_hp_objects, dtype=bool)])**K
-         super = 1.0 - (1.0 - superadditive[~np.eye(N_hp_objects, dtype=bool)])**K
-         control = 1.0 - (1.0 - base[~np.eye(N_hp_objects, dtype=bool)])**K
-         KLs = KLmat[~np.eye(N_hp_objects, dtype=bool)]
+         control = 1.0 - (1.0 - base[~np.isnan(subadditive)])**K
+         large_vals = control > 0.0#np.median(control)
+         control = control[large_vals]
+         sub = 1.0 - (1.0 - subadditive[~np.isnan(subadditive)][large_vals])**K
+         super = 1.0 - (1.0 - superadditive[~np.isnan(subadditive)][large_vals])**K
+         fullKL = np.tile(KLmat.reshape(N_hp_objects, N_hp_objects, 1), N_hp_objects)
+         KLs = fullKL[~np.isnan(subadditive)][large_vals]
          highKL_vals = 100*np.vstack(((sub-control)[KLs > np.median(KLs)], 
                                   (super-control)[KLs > np.median(KLs)]))
          lowKL_vals = 100*np.vstack(((sub-control)[KLs < np.median(KLs)], 
