@@ -171,7 +171,7 @@ plt.savefig('figs/Precision_' + storage_id +'.pdf')
 
 
 plot_data = {'typ_am': typ_ams,
-             'atyp_hrm': atyp_ams,
-             'typ_hrm': typ_ams,
-             'atyp_hrm': atyp_ams}
+             'atyp_am': atyp_ams,
+             'typ_hrm': typ_hrms,
+             'atyp_hrm': atyp_hrms}
 utils.save_data(plot_data, name = storage_id + 'plot_data')
