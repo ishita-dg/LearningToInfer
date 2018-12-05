@@ -17,15 +17,17 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 10
+  total_part = 20
   
 ID_all_hrms = []
 ID_all_ams = []
 ID_all_priors = []
+ID_all_liks = []
 
 UD_all_hrms = []
 UD_all_ams = []
 UD_all_priors = []
+UD_all_liks = []
 
 for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
@@ -34,7 +36,7 @@ for part_number in np.arange(total_part):
             'optimization_params': {'train_epoch': 50,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.02,
+                                   'train_lr': 0.05,
                                    'test_lr' : 0.0},
             'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'}}
@@ -161,21 +163,29 @@ for part_number in np.arange(total_part):
   ID_all_hrms.append(ID_test_data['y_hrm'][:, 1])
   ID_all_ams.append(ID_test_data['y_am'][:, 1])
   ID_all_priors.append(ID_test_data['X'][:, -2])
+  lik_of_data = (ID_test_data['X'][:, 0]*ID_test_data['X'][:, 2]
+                 + (1.0 - ID_test_data['X'][:, 0])*(1.0 - ID_test_data['X'][:, 2]))
+  ID_all_liks.append(lik_of_data)
   
   UD_all_hrms.append(UD_test_data['y_hrm'][:, 1])
   UD_all_ams.append(UD_test_data['y_am'][:, 1])
   UD_all_priors.append(UD_test_data['X'][:, -2])
-  
+  lik_of_data = (UD_test_data['X'][:, 0]*UD_test_data['X'][:, 2]
+                 + (1.0 - UD_test_data['X'][:, 0])*(1.0 - UD_test_data['X'][:, 2]))
+  UD_all_liks.append(lik_of_data)
+
     
   
   
 ID_all_hrms = np.reshape(np.array(ID_all_hrms), (-1))
 ID_all_ams = np.reshape(np.array(ID_all_ams), (-1))
 ID_all_priors = np.reshape(np.array(ID_all_priors), (-1))
+ID_all_liks = np.reshape(np.array(ID_all_liks), (-1))
 
 UD_all_hrms = np.reshape(np.array(UD_all_hrms), (-1))
 UD_all_ams = np.reshape(np.array(UD_all_ams), (-1))
 UD_all_priors = np.reshape(np.array(UD_all_priors), (-1))
+UD_all_liks = np.reshape(np.array(UD_all_liks), (-1))
 
 # Plotting
 fig, ax = plt.subplots(1, 1)
@@ -202,13 +212,20 @@ ax.set_xticklabels(['Informative Data', 'Uninformative Data'])
 ax.set_ylabel('AR on test')
 
 
-plt.legend()
 plt.show()
 plt.savefig('figs/AR_bar' + storage_id + '.pdf')
 
         
 
 plot_data = {'ID_ARs': ID_ARs,
+             'ID_priors': ID_all_priors, 
+             'ID_liks': ID_all_liks, 
+             'ID_ams': ID_all_ams, 
+             'ID_hrms': ID_all_hrms,              
+             'UD_priors': UD_all_priors, 
+             'UD_liks': UD_all_liks, 
+             'UD_ams': UD_all_ams, 
+             'UD_hrms': UD_all_hrms,              
              'UD_ARs': UD_ARs}
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
