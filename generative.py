@@ -188,12 +188,12 @@ class Urn ():
         
             
         posts = np.random.beta(alpha_post, alpha_post, N_blocks)
-        pres = 0.5*np.ones(N_blocks)#np.random.beta(alpha_pre, alpha_pre, N_blocks)
+        pres = np.random.beta(alpha_pre, alpha_pre, N_blocks)#0.5*np.ones(N_blocks)
         priors = []
         likls = []
         
         for pre, post in zip(pres, posts):
-            if False: #np.abs(pre - post) > 0.5:
+            if np.abs(pre - post) > 0.5:
                 pre = 1.0 - pre
             x = (post*(1.0 - pre))/(pre*(1.0 - post))
             edit = x / (1.0 + x)

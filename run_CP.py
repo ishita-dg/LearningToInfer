@@ -28,16 +28,16 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 30,
+            'optimization_params': {'train_epoch': 50,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.05,
+                                   'train_lr': 0.007,
                                    'test_lr' : 0.0},
             'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'},
             'N_balls' : 20,
             'alpha_pre' : 1.0, 
-            'train_blocks' : 100,
+            'train_blocks' : 200,
             'N_trials' : 4}
   
   # Run results for Correction Prior (CP)
@@ -118,11 +118,7 @@ for part_number in np.arange(total_part):
       test_data[key] = np.array(test_data[key])
       
   #utils.save_data(test_data, name = storage_id + 'test_data')
-  var = np.var(test_data['y_am'][:, 1])
-  off = np.abs(test_data['y_am'][:, 1] - test_data['y_hrm'][:, 1]) > 0.4
-  # Sometimes the network doesn't learn, 
-  # and those few random times, it messes up the variance pattern
-  if np.sum(off)<10:
+  if True :
     hrms.append(test_data['y_hrm'][:, 1])
     ams.append(test_data['y_am'][:, 1])
   else:
