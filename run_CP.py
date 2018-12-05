@@ -181,7 +181,7 @@ plt.show()
 plt.savefig('figs/Conservatism_' + storage_id +'.pdf')
     
 
-plot_data = {'x': bins + jump/2.0,
+plot_data = {'x': x,
              'var': np.array(Y_vars),
              'mean': np.array(Y_means),
              'all_ams': ams,
