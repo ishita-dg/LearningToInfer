@@ -35,7 +35,7 @@ for part_number in np.arange(total_part):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 1,
+            'network_params': {'NHID': 5,
                                'NONLIN' : 'rbf'}}
   
   # Run results for reanalysis of Peterson and Miller (PM)
@@ -164,6 +164,7 @@ for cond in np.sort(np.unique(conds)):
   plot_data['y' + str(cond)] = np.array(Y_means)
   #ax.scatter(x,y, label = str(cond))
 
+ax.set_ylim([-0.1, 4.0])
 
 plt.legend()
 plt.show()
