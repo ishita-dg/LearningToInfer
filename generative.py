@@ -98,7 +98,7 @@ class Urn ():
         
 
     
-    def data_gen(self, block_vals, N_trials, same_urn = False, return_urns = False):
+    def data_gen(self, block_vals, N_trials, fixed = False, same_urn = False, return_urns = False):
         
         '''
         TODO:
@@ -143,6 +143,8 @@ class Urn ():
                     delN = 0
                 delNs.append(delN)
             
+            
+            if fixed: draws_b = np.ones(N_trials)
             delNs = np.array(delNs)    
             Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1] / 20.0              
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
@@ -184,6 +186,21 @@ class Urn ():
         
         return priors, lik0s, lik1s
     
+    def assign_PL_FC(self, N_balls, N_blocks, varied):
+        
+        # but we don't want all of one color ever
+        lik0s = 0.2*np.ones(N_blocks)
+        lik1s = 1.0 - lik0s
+        options = [15.0, 85.0]
+        
+        if varied:
+            priors = np.random.choice(options, N_blocks)/N_balls           
+        else:
+            p = np.random.choice(options)
+            priors = p*np.ones(N_blocks)/N_balls            
+        
+        return priors, lik0s, lik1s
+
     def assign_PL_CP(self, N_blocks, N_balls, alpha_post, alpha_pre):
         
             
