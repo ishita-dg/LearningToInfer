@@ -194,7 +194,8 @@ class Urn ():
         options = [15.0, 85.0]
         
         if varied:
-            priors = np.random.choice(options, N_blocks)/N_balls           
+            #priors = np.random.choice(options, N_blocks)/N_balls
+            priors = np.tile(options, N_blocks/2)/N_balls           
         else:
             p = np.random.choice(options)
             priors = p*np.ones(N_blocks)/N_balls            

@@ -33,12 +33,12 @@ for part_number in np.arange(total_part):
   print("Participant number, ", part_number)
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 50,
+            'optimization_params': {'train_epoch': 500,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHYV': 1,
+            'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'}}
   
   
@@ -50,7 +50,7 @@ for part_number in np.arange(total_part):
   
   N_trials = 1
   
-  train_blocks = 100
+  train_blocks = 2
   test_blocks = 200
   N_blocks = train_blocks + test_blocks
   
@@ -67,20 +67,20 @@ for part_number in np.arange(total_part):
   # Can also adjust the nonlinearity
   OUT_DIM = 2
   INPUT_SIZE = 5 #data, lik1, lik2, prior, N
-  NHYV = config['network_params']['NHYV']
+  NHID = config['network_params']['NHID']
   NONLIN = config['network_params']['NONLIN']
   
   storage_id = utils.make_id(config)
   
   # Varied data vs uninformative data
   
-  YV_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHYV, NONLIN)
+  YV_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   YV_rational_model = expt.get_rationalmodel(N_trials) 
-  YV_block_vals =  expt.assign_PL_EU(N_balls, train_blocks, True)
+  YV_block_vals =  expt.assign_PL_FC(N_balls, train_blocks, True)
   YV_X = expt.data_gen(YV_block_vals, N_trials, fixed = True)
   
   
-  NV_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHYV, NONLIN)
+  NV_approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   NV_rational_model = expt.get_rationalmodel(N_trials) 
   NV_block_vals =  expt.assign_PL_FC(N_balls, train_blocks, False)
   NV_X = expt.data_gen(NV_block_vals, N_trials, fixed = True)
@@ -205,7 +205,7 @@ high_opt = np.mean(YV_all_hrms[prior_high])
 ax.bar([0, 1, 2], 
        [np.abs(high_opt - low_opt), np.abs(high_YV - low_YV), np.abs(high_NV - low_NV)])
 ax.set_xticks([0, 1, 2])
-ax.set_xticklabels(['Optimal', 'Varied base rates', 'Unvaried base rates'])
+ax.set_xticklabels(['Optimal', 'Within-subject', 'Between-subject'])
 ax.set_ylabel('Reaction to prior')
 
 plt.show()
