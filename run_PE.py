@@ -37,7 +37,7 @@ for part_number in np.arange(total_part):
                                    'L2': 0.0,
                                    'train_lr': 0.02,
                                    'test_lr' : 0.0},
-           'network_params': {'NHID': 5,
+           'network_params': {'NHID': 1,
                               'NONLIN' : 'rbf'}}
   
   
@@ -152,7 +152,10 @@ Ns = Ns[clip_mask]
 
 plot_data = {'Ns': Ns,
              'ARs' : ARs,
-             'conds': conds}
+             'conds': conds,
+             'priors': all_priors[clip_mask],
+             'ams': ams[clip_mask],
+             'hrms': hrms[clip_mask]}
 
 
 # Plotting
@@ -179,7 +182,7 @@ for cond in np.sort(np.unique(conds)):
   #ax.scatter(x,y, label = str(cond))
   
 plt.legend()
-plt.show()
+#plt.show()
 plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')      

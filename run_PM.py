@@ -147,7 +147,11 @@ bins = np.arange(0.0, 1.0, jump)
 plot_data = {'x': bins+jump,
              'priors': priors,
              'ARs' : ARs,
-             'conds': conds}
+             'conds': conds,
+             'priors': all_priors[clip_mask],
+             'ams': ams[clip_mask],
+             'hrms': hrms[clip_mask]
+             }
 
 for cond in np.sort(np.unique(conds)):
   mask = conds == cond
@@ -167,11 +171,8 @@ for cond in np.sort(np.unique(conds)):
 ax.set_ylim([-0.1, 4.0])
 
 plt.legend()
-plt.show()
+#plt.show()
 plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
-
-        
-
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
         

@@ -224,7 +224,8 @@ plot_data = {'ID_ams': ID_all_ams,
              'UD_hrms': UD_all_hrms,
              'x': bins + jump/2.0,
              'UD_means': np.array(UD_means),
-             'ID_means': np.array(ID_means)}
+             'ID_means': np.array(ID_means),
+             }
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
 

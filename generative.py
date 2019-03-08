@@ -188,7 +188,7 @@ class Urn ():
     
     def assign_PL_FC(self, N_balls, N_blocks, varied):
         
-        # but we don't want all of one color ever
+
         lik0s = 0.2*np.ones(N_blocks)
         lik1s = 1.0 - lik0s
         options = [15.0, 85.0]
