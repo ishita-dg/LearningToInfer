@@ -23,6 +23,12 @@ lik_los <- true_los - prior_los
 model_los <- log_odds(PM_data$ams)
 
 
+# prior_los <- log_odds(c(PM_data$priors, EU_data$ID_priors))
+# true_los <- log_odds(c(PM_data$hrms, EU_data$ID_hrms))
+# lik_los <- true_los - prior_los
+# model_los <- log_odds(c(PM_data$ams, EU_data$ID_ams))
+
+
 # Bin the lik_los
 
 bins = .bincode(abs(lik_los), breaks = quantile(abs(lik_los)))
