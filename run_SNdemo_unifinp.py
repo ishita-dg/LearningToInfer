@@ -36,7 +36,7 @@ for part_number in np.arange(total_part):
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 5,
+            'network_params': {'NHID': 2,
                                'NONLIN' : 'rbf'}}
   
   expt = generative.Urn()
