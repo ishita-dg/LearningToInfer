@@ -43,9 +43,9 @@ for (cut_width in c(0.02, 0.1, 0.25, 0.3, 0.5)){
   df_final = rbind(df_final, df)
 }
 
-plot1 <- ggplot(df_final, aes(y = coeff, x = lik, color = label)) +
+plot1 <- ggplot(df_final, aes(y = coeff, x = lik, color = label), size = 6) +
   geom_hline(yintercept=1.0, linetype="dashed", color = "black") +
-  geom_point() + geom_line() + ggtitle("System Neglect with changing bins")  + ylim(c(0.5, 1.05))
+  geom_point(size = 3) + geom_line(size = 1) + ggtitle("System Neglect with changing bins")  + ylim(c(0.5, 1.05))
 ggsave(file ="Intuition_allbins.pdf", plot1)
 plot1
   

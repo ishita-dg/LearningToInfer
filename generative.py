@@ -284,7 +284,20 @@ class Urn ():
         return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
     
 
+    def assign_PL_demo(self, N_balls, N_blocks, expt_name):
+            
+            Ps = np.linspace(0.001,0.999,999)
+            LRs = np.vstack((Ps, 1.0 - Ps)).T
+            
+            priors = np.random.choice(Ps, N_blocks)
+            l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
+            which_urn = np.random.choice([1,-1], N_blocks)
+            
+            likls0 = LRs[l_inds]
+            likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
         
+            return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
+       
     
     def get_rationalmodel(self, N_trials):
         
