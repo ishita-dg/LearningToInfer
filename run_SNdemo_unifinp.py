@@ -17,7 +17,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 20
+  total_part = 200
 
 
 hrms = []
@@ -30,13 +30,13 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 500,
+            'optimization_params': {'train_epoch': 0,
                                     'train_blocks': 400,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 2,
+            'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'}}
   
   expt = generative.Urn()
