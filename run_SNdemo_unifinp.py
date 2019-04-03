@@ -17,7 +17,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 200
+  total_part = 100
 
 
 hrms = []
@@ -71,7 +71,10 @@ for part_number in np.arange(total_part):
   
   # Informative data vs uninformative data
   
-  approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
+  if train_epoch == 0:
+    approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN, stronginit = True)
+  else:
+    approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   block_vals =  expt.assign_PL_demo(N_balls, N_blocks, expt_name)
   indices = np.repeat(block_vals[-1], N_trials)
@@ -126,28 +129,22 @@ for part_number in np.arange(total_part):
   
 ams = np.reshape(np.array(ams), (-1))
 hrms = np.reshape(np.array(hrms), (-1))
+all_priors = np.reshape(np.array(all_priors), (-1))
 
 notnan = np.logical_not(np.isnan(ams))
 ams = ams[notnan]
 hrms = hrms[notnan]
+all_priors = all_priors[notnan]
 
   
 # Plotting
-#clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-00.0, 100])
-
-#priors = priors[clip_mask]
-#ARs = all_ARs[clip_mask]
-#conds = all_conds[clip_mask]
-
-#which_urn = np.random.binomial(1, 1.0, test_data['prior'].shape)
-#new_priors = which_urn*test_data['prior'] + (1 - which_urn)*(1.0-test_data['prior'])
-
 fig, ax = plt.subplots(1, 1)
 jump = 0.1
 bins = np.arange(0.0, 1.0, jump)
 plot_data = {
-             'ams': ams,#[clip_mask],
-             'hrms': hrms#[clip_mask]
+             'ams': ams,
+             'hrms': hrms,
+             'priors': all_priors
              }
 
 

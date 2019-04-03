@@ -33,17 +33,27 @@ class RbfNet(nn.Module):
 
 class MLP_disc(nn.Module): 
 
-    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad, 
-                 nonlin):
+    def __init__(self, input_size, output_size, nhid, loss_function, loss_function_grad, nonlin, stronginit = False):
+        
         super(MLP_disc, self).__init__()
         self.out_dim = output_size
         self.fc1 = nn.Linear(input_size, nhid)
         self.fc2 = nn.Linear(nhid, output_size)
+        
+        if stronginit:
+            fac = 1.5
+            self.fc1.weight.data = self.fc1.weight.data*fac
+            self.fc2.weight.data = self.fc2.weight.data*fac
+            self.fc1.bias.data = self.fc1.bias.data*fac
+            self.fc2.bias.data = self.fc2.bias.data*fac
+            
         self.loss_function = loss_function
         self.loss_function_grad = loss_function_grad
+            
         
         self.num_centers = nhid
         self.centers = nn.Parameter(torch.zeros(self.num_centers))
+        
         self.beta = nn.Parameter(torch.ones(self.num_centers)/10)
         self.nonlin = nonlin
         
