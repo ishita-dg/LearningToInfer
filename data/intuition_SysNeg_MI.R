@@ -2,7 +2,7 @@ library(jsonlite)
 library(ggplot2)
 require(gridExtra)
 
-Nbins = 15
+Nbins = 18
 log_odds <- function(x){
   return(log(x/(1.0 - x)))
 }

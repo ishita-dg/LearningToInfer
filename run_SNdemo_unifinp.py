@@ -17,7 +17,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 100
+  total_part = 20
 
 
 hrms = []
@@ -30,13 +30,14 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 0,
+            'Bias' : False, 
+            'optimization_params': {'train_epoch': 100,  
                                     'train_blocks': 400,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.05,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 1,
+            'network_params': {'NHID': 5,
                                'NONLIN' : 'rbf'}}
   
   expt = generative.Urn()
@@ -48,7 +49,7 @@ for part_number in np.arange(total_part):
   N_trials = 1
   
   train_blocks = config['optimization_params']['train_blocks']
-  test_blocks = 200
+  test_blocks = 500
   N_blocks = train_blocks + test_blocks
   
   N_balls = 1000
@@ -76,7 +77,7 @@ for part_number in np.arange(total_part):
   else:
     approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
-  block_vals =  expt.assign_PL_demo(N_balls, N_blocks, expt_name)
+  block_vals =  expt.assign_PL_demo(N_balls, train_blocks, bias = config['Bias'])
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials) 
   X = expt.data_gen(block_vals[:-1], N_trials)
@@ -91,6 +92,11 @@ for part_number in np.arange(total_part):
                 }
   
   
+  block_vals =  expt.assign_PL_demo(N_balls, test_blocks, bias = False)
+  indices = np.repeat(block_vals[-1], N_trials)
+  priors = np.repeat(block_vals[0], N_trials) 
+  X = expt.data_gen(block_vals[:-1], N_trials)
+
   test_data = {'X': X[-test_blocks*N_trials:],
                'l_cond' : indices[-test_blocks*N_trials:],
                'prior' : priors[-test_blocks*N_trials:],

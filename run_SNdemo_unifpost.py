@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 5
+  total_part = 6
 
 hrms = []
 ams = []
@@ -32,18 +32,18 @@ for part_number in np.arange(total_part):
                                     'train_blocks': 200,
                                     'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.05,
+                                   'train_lr': 0.02,
                                    'test_lr' : 0.0},
-            'network_params': {'NHID': 10,
+            'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'},
             'N_balls' : 100,
-            'alpha_pre' : 1.0, 
+            'alpha_pre' : 3.0, 
             'N_trials' : 1}
   
   # Run results for Correction Prior (CP)
   
   expt = generative.Urn()
-  expt_name = "SN" # PM, PE, SR, EU, CP
+  expt_name = "SN_post" # PM, PE, SR, EU, CP
   config['expt_name'] = expt_name
   
   # Parameters for generating the training data
@@ -51,7 +51,7 @@ for part_number in np.arange(total_part):
   N_trials = config['N_trials']
   
   train_blocks = config['optimization_params']['train_blocks']
-  test_blocks = 500
+  test_blocks = 200
   N_blocks = train_blocks + test_blocks
   
   N_balls = config['N_balls']
@@ -77,7 +77,7 @@ for part_number in np.arange(total_part):
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   
-  train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha_post = 1.0, alpha_pre = config['alpha_pre'])
+  train_block_vals =  expt.assign_PL_CP(train_blocks, N_balls, alpha_post = 1.0, alpha_pre = config['alpha_pre'], snip = True)
   train_X = expt.data_gen(train_block_vals, N_trials, N_balls)
   test_block_vals =  expt.assign_PL_CP(test_blocks, N_balls, alpha_post = 1.0, alpha_pre = config['alpha_pre'])
   test_X = expt.data_gen(test_block_vals, N_trials)
@@ -155,4 +155,3 @@ plt.legend()
 plt.savefig('figs/Demo_' + storage_id + '.pdf')
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
-        
