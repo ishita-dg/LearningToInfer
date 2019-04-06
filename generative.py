@@ -98,7 +98,7 @@ class Urn ():
         
 
     
-    def data_gen(self, block_vals, N_trials, fixed = False, same_urn = False, return_urns = False):
+    def data_gen(self, block_vals, N_trials, fixed = False, same_urn = False, return_urns = False, variable_ss = None):
         
         '''
         TODO:
@@ -133,20 +133,31 @@ class Urn ():
                     lik = l1
                 else:
                     lik = l2
-                # lik will always be the higher prob -- no longer true
-                draw = np.random.binomial(1, lik, 1)
-                draws_b.append(draw)
-                #success = draw*(1-urn) + (1-draw)*urn
-                if same_urn:
-                    delN += (2*draw - 1)[0]
+                
+                if variable_ss is not None:
+                    draws_b.append(0.0)
+                    heads = np.random.binomial(variable_ss[i], lik, 1)
+                    tails = variable_ss[i] - heads
+                    delN += (heads - tails)[0]
+                    delNs.append(delN)
+                    
                 else:
-                    delN = 0
-                delNs.append(delN)
+                    draw = np.random.binomial(1, lik, 1)
+                    draws_b.append(draw)
+                    #success = draw*(1-urn) + (1-draw)*urn
+                    if same_urn:
+                        delN += (2*draw - 1)[0]
+                    else:
+                        delN = 0
+                    delNs.append(delN)
             
             
             if fixed: draws_b = np.ones(N_trials)
-            delNs = np.array(delNs)    
-            Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1] / 20.0              
+            delNs = np.array(delNs, dtype = np.float)
+            if variable_ss is not None:
+                Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[1]/variable_ss[i]  
+            else:
+                Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1] / 20.0              
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
             lik1s[i*N_trials : (i+1)*N_trials, 0] = l1 * np.ones(N_trials)
             lik2s[i*N_trials : (i+1)*N_trials, 0] = l2 * np.ones(N_trials)            
@@ -155,6 +166,10 @@ class Urn ():
             
         
         X = np.hstack((draws, lik1s, lik2s, pris, Ns))
+        if variable_ss is not None:
+            X = np.hstack((draws, lik1s, lik2s, pris, Ns, 
+                           variable_ss.reshape((-1, 1))/33.0
+                           ))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
@@ -283,6 +298,23 @@ class Urn ():
     
         return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
     
+
+    def assign_PL_GT(self, N_blocks, which):
+        
+        if which == 'study1':
+            Ps = np.array([0.5])
+            LRs = np.array([[0.6, 0.4]]) 
+                
+            
+        priors = np.random.choice(Ps, N_blocks)
+        l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
+        which_urn = np.random.choice([1,-1], N_blocks)
+        
+        likls0 = LRs[l_inds]
+        likls = np.array([l[::wu] for l,wu in zip(likls0, which_urn)])
+        
+        return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
+        
 
     def assign_PL_demo(self, N_balls, N_blocks, bias = False):
             

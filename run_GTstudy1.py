@@ -18,13 +18,14 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 1
+  total_part = 20
 
 hrms = []
 ams = []
 all_priors = []
 conds = []
-Ns = []
+strengths = []
+weights = []
 
 for part_number in np.arange(total_part):
   
@@ -32,30 +33,29 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 2,
+            'optimization_params': {'train_epoch': 300,
                                    'test_epoch': 0,
                                    'L2': 0.0,
-                                   'train_lr': 0.02,
+                                   'train_lr': 0.01,
                                    'test_lr' : 0.0},
-           'network_params': {'NHID': 1,
+           'network_params': {'NHID': 2,
                               'NONLIN' : 'rbf'}}
   
   
   # Run results for reanalysis of Philip and Edwards (PE)
   
   expt = generative.Urn()
-  expt_name = "PE" # PM, PE, SR, EU, CP
+  expt_name = "GTstudy1" # PM, PE, SR, EU, CP
   config['expt_name'] = expt_name
   
   # Parameters for generating the training data
   
-  N_trials = 20
+  N_trials = 1
+  sample_sizes = np.array([3, 3, 5, 5, 5, 9, 9, 9, 17, 17, 17, 33])
   
-  train_blocks = 15
-  test_blocks = 100
+  train_blocks = 150
+  test_blocks = 300
   N_blocks = train_blocks + test_blocks
-  
-  N_balls = 100
   
   # Optimization parameters
   train_epoch = config['optimization_params']['train_epoch']
@@ -67,7 +67,7 @@ for part_number in np.arange(total_part):
   # Network parameters -- single hidden layer MLP
   # Can also adjust the nonlinearity
   OUT_DIM = 2
-  INPUT_SIZE = 5 #data, lik1, lik2, prior, N
+  INPUT_SIZE = 6 #data, lik1, lik2, prior, strength, weight
   NHID = config['network_params']['NHID']
   NONLIN = config['network_params']['NONLIN']
   
@@ -77,10 +77,11 @@ for part_number in np.arange(total_part):
   
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
-  block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
+  block_vals =  expt.assign_PL_GT(N_blocks, which = 'study1')
+  ss_vals = np.random.choice(sample_sizes, N_blocks)
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials)  
-  X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True)
+  X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True, variable_ss = ss_vals)
   
   # Create the data frames
   train_data = {'X': X[:train_blocks*N_trials],
@@ -99,9 +100,11 @@ for part_number in np.arange(total_part):
                'y_am': None,
                }
   
+  # Convert Xs to GT decomposition
+  
   
   # training models
-  train_data = rational_model.train(train_data)
+  train_data = rational_model.train_GT(train_data)
   approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                         lr=train_lr, 
                                         weight_decay = L2)
@@ -109,7 +112,7 @@ for part_number in np.arange(total_part):
   #utils.save_model(approx_model, name = storage_id + 'trained_model')
   
   # testing models
-  test_data = rational_model.test(test_data)
+  test_data = rational_model.test_GT(test_data)
   approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                         lr=test_lr)
   test_data = approx_model.test(test_data, test_epoch, N_trials)
@@ -129,60 +132,27 @@ for part_number in np.arange(total_part):
   ams.append(test_data['y_am'][:, 1])
   all_priors.append(test_data['prior'])
   conds.append(test_data['l_cond'])
-  keep = (true_urns[-test_blocks*N_trials:] * (test_data['X'][:,2] > test_data['X'][:,1]) +
-          (1 - true_urns[-test_blocks*N_trials:]) * (test_data['X'][:,2] < test_data['X'][:,1]))
-  corrected_N = ((1 - keep)*test_data['X'][:,-1] - 
-                 (keep)*test_data['X'][:,-1])
-  Ns.append(corrected_N)
+  strengths.append(test_data['X'][:, -2])
+  weights.append(test_data['X'][:, -1])
   
+
 ams = np.reshape(np.array(ams), (-1))
 hrms = np.reshape(np.array(hrms), (-1))
 all_priors = np.reshape(np.array(all_priors), (-1))
 conds = np.reshape(np.array(conds), (-1))
-Ns = np.reshape(np.array(Ns), (-1))
-  
+strengths = np.reshape(np.array(strengths), (-1))
+weights = np.reshape(np.array(weights), (-1))
+
+notnan = np.logical_not(np.isnan(ams))
+
+plot_data = {'conds': conds[notnan],
+             'priors': all_priors[notnan],
+             'ams': ams[notnan],
+             'hrms': hrms[notnan],
+             'strengths': strengths[notnan],
+             'weights': weights[notnan]}
 
 
-clip_mask, _, ARs = utils.find_AR(hrms, ams, 1.0 - all_priors, randomize = False, clip = [-0.0, 100])
-
-ARs = ARs[clip_mask]
-conds = conds[clip_mask]
-Ns = Ns[clip_mask]
-
-
-plot_data = {'Ns': Ns,
-             'ARs' : ARs,
-             'conds': conds,
-             'priors': all_priors[clip_mask],
-             'ams': ams[clip_mask],
-             'hrms': hrms[clip_mask]}
-
-
+utils.save_data(plot_data, name = storage_id + 'plot_data')      
 # Plotting
-fig, ax = plt.subplots(1, 1)
-for cond in np.sort(np.unique(conds)):
-  mask = conds == cond
-  x, y = Ns[mask], ARs[mask]
-  Y_means = []
-  Y_errs = []
-  Xs = []
-  ps = np.sort(np.unique(x))
-  for p in ps:
-    if sum(x == p) > len(x)/30.0:
-      Y_means.append(np.mean(y[x == p]))
-      Y_errs.append(np.std(y[x == p]))
-      Xs.append(p*20)
-  ax.plot(Xs, Y_means, label = str(cond))
-  ax.set_xlim([-6, 18])
-  ax.set_ylim([0.0, 3])
-  ax.axhline(1.0, c = 'k')
-  ax.axvline(0.0, c = 'k')
-  plot_data['x' + str(cond)] = np.array(Xs)
-  plot_data['y' + str(cond)] = np.array(Y_means)
-  #ax.scatter(x,y, label = str(cond))
-  
-plt.legend()
-#plt.show()
-#plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
-#utils.save_data(plot_data, name = storage_id + 'plot_data')      

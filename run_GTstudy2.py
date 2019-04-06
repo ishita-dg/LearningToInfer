@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 1
+  total_part = 20
 
 hrms = []
 ams = []
@@ -32,7 +32,7 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'optimization_params': {'train_epoch': 2,
+            'optimization_params': {'train_epoch': 200,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.02,
@@ -44,7 +44,7 @@ for part_number in np.arange(total_part):
   # Run results for reanalysis of Philip and Edwards (PE)
   
   expt = generative.Urn()
-  expt_name = "PE" # PM, PE, SR, EU, CP
+  expt_name = "GT" # PM, PE, SR, EU, CP
   config['expt_name'] = expt_name
   
   # Parameters for generating the training data
@@ -55,7 +55,7 @@ for part_number in np.arange(total_part):
   test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
-  N_balls = 100
+  N_balls = 1
   
   # Optimization parameters
   train_epoch = config['optimization_params']['train_epoch']
@@ -77,7 +77,7 @@ for part_number in np.arange(total_part):
   
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
-  block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
+  block_vals =  expt.assign_GT(N_balls, N_blocks)
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials)  
   X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True)
@@ -183,6 +183,6 @@ for cond in np.sort(np.unique(conds)):
   
 plt.legend()
 #plt.show()
-#plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
+plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
-#utils.save_data(plot_data, name = storage_id + 'plot_data')      
+utils.save_data(plot_data, name = storage_id + 'plot_data')      
