@@ -180,7 +180,47 @@ class Urn ():
         
         return X
             
-    
+    def data_gen_GT(self, N_blocks):
+        '''
+        Fixed observations
+        '''
+        #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+        X_options = np.zeros((12, 6))
+        X_options[:, :4] = np.array([0.0, 0.4, 0.6, 0.5])
+        #Nh, Nt, N
+        raw_options = np.array([
+            [2, 1, 3],
+            [3, 0, 3],
+            [3, 2, 5],
+            [4, 1, 5],
+            [5, 0, 5],
+            [5, 4, 9],
+            [6, 3, 9],
+            [7, 2, 9],
+            [9, 8, 17],
+            [10, 7, 17],
+            [11, 6, 17],
+            [19, 14, 33]
+        ])
+        N_ratio = 1.0*(raw_options[:, 0] - raw_options[:, 1])/raw_options[:, 2]
+        N_t = raw_options[:, 2]/33.0
+        X_options[:, -2] = N_ratio
+        X_options[:, -1] = N_t
+        inverse_X = X_options.copy()
+        inverse_X[:, 1] = X_options[:, 2].copy()
+        inverse_X[:, 2] = X_options[:, 1].copy()
+        inverse_X[:, -2] = inverse_X[:, -2]*-1
+        
+        all_options = np.vstack((X_options, inverse_X))
+        
+        choices = np.random.choice(np.arange(12), N_blocks)
+        X = all_options[choices, :]
+        
+        X = torch.from_numpy(X)
+        X = X.type(torch.FloatTensor)
+        
+        return X
+
     
     
     def assign_PL_EU(self, N_balls, N_blocks, inf_data):
@@ -303,7 +343,7 @@ class Urn ():
         
         if which == 'study1':
             Ps = np.array([0.5])
-            LRs = np.array([[0.6, 0.4]]) 
+            LRs = np.array([[0.4, 0.6]]) 
                 
             
         priors = np.random.choice(Ps, N_blocks)

@@ -38,7 +38,7 @@ for part_number in np.arange(total_part):
                                    'L2': 0.0,
                                    'train_lr': 0.01,
                                    'test_lr' : 0.0},
-           'network_params': {'NHID': 2,
+           'network_params': {'NHID': 5,
                               'NONLIN' : 'rbf'}}
   
   
@@ -85,17 +85,14 @@ for part_number in np.arange(total_part):
   
   # Create the data frames
   train_data = {'X': X[:train_blocks*N_trials],
-                'l_cond' : indices[:train_blocks*N_trials],
-                'prior' : priors[:train_blocks*N_trials],
                 'log_joint': None,
                 'y_hrm': None,
                 'y_am': None,
                 }
   
   
-  test_data = {'X': X[-test_blocks*N_trials:],
-               'l_cond' : indices[-test_blocks*N_trials:],
-               'prior' : priors[-test_blocks*N_trials:],
+  test_data = {'X': torch.cat((expt.data_gen_GT(test_blocks),
+                                 X[-test_blocks*N_trials:]), dim = 0),
                'y_hrm': None,
                'y_am': None,
                }
@@ -130,24 +127,18 @@ for part_number in np.arange(total_part):
   
   hrms.append(test_data['y_hrm'][:, 1])
   ams.append(test_data['y_am'][:, 1])
-  all_priors.append(test_data['prior'])
-  conds.append(test_data['l_cond'])
   strengths.append(test_data['X'][:, -2])
   weights.append(test_data['X'][:, -1])
   
 
 ams = np.reshape(np.array(ams), (-1))
 hrms = np.reshape(np.array(hrms), (-1))
-all_priors = np.reshape(np.array(all_priors), (-1))
-conds = np.reshape(np.array(conds), (-1))
 strengths = np.reshape(np.array(strengths), (-1))
 weights = np.reshape(np.array(weights), (-1))
 
 notnan = np.logical_not(np.isnan(ams))
 
-plot_data = {'conds': conds[notnan],
-             'priors': all_priors[notnan],
-             'ams': ams[notnan],
+plot_data = {'ams': ams[notnan],
              'hrms': hrms[notnan],
              'strengths': strengths[notnan],
              'weights': weights[notnan]}
