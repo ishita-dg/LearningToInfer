@@ -330,6 +330,7 @@ class Urn ():
             
         if fix_prior:
             Ps = Ps*0 + 0.5
+        if fix_ll:
             LRs = LRs*0 + 0.5
             
         

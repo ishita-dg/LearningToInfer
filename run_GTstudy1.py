@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 5
+  total_part = 20
 
 hrms = []
 ams = []
@@ -33,11 +33,12 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
+            'alpha': 0.1,
             'optimization_params': {'train_epoch': 300,
-                                   'test_epoch': 10,
+                                   'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.01,
-                                   'test_lr' : 0.001},
+                                   'test_lr' : 0.0},
            'network_params': {'NHID': 1,
                               'NONLIN' : 'rbf'}}
   
@@ -53,8 +54,9 @@ for part_number in np.arange(total_part):
   N_trials = 1
   sample_sizes = np.array([3, 3, 5, 5, 5, 9, 9, 9, 17, 17, 17, 33])
   
-  train_blocks = 150
-  test_blocks = 100
+  alpha = config['alpha']
+  train_blocks = int(150/(1.0 + alpha))
+  test_blocks = 300
   N_blocks = train_blocks + test_blocks
   
   # Optimization parameters
@@ -84,16 +86,16 @@ for part_number in np.arange(total_part):
   X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True, variable_ss = ss_vals)
   
   # Create the data frames
-  train_data = {'X': X[:train_blocks*N_trials],
+  train_data = {'X': torch.cat((expt.data_gen_GT(int(train_blocks*alpha)),
+                                 X[train_blocks*N_trials:]), dim = 0),
                 'log_joint': None,
                 'y_hrm': None,
                 'y_am': None,
                 }
   
   
-  test_data = {'X': expt.data_gen_GT(test_blocks),
-               #'X': torch.cat((expt.data_gen_GT(test_blocks),
-                                                #X[-test_blocks*N_trials:]), dim = 0),              
+  test_data = {'X': torch.cat((expt.data_gen_GT(test_blocks),
+                                 X[-test_blocks*N_trials:]), dim = 0),
                'y_hrm': None,
                'y_am': None,
                }
