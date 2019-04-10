@@ -30,6 +30,8 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
+            'fix_prior': True,
+            'fix_ll': False,
             'optimization_params': {'train_epoch': 30,
                                    'test_epoch': 0,
                                    'L2': 0.0,
@@ -53,6 +55,8 @@ for part_number in np.arange(total_part):
   N_blocks = train_blocks + test_blocks
   
   N_balls = 6
+  fix_prior = config['fix_prior']
+  fix_ll = config['fix_ll']
   
   # Optimization parameters
   train_epoch = config['optimization_params']['train_epoch']
@@ -74,7 +78,7 @@ for part_number in np.arange(total_part):
   
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
-  block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name)
+  block_vals =  expt.assign_PL_replications(N_balls, N_blocks, expt_name, fix_prior, fix_ll)
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials) 
   X = expt.data_gen(block_vals[:-1], N_trials)

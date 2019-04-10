@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 20
+  total_part = 5
 
 hrms = []
 ams = []
@@ -34,11 +34,11 @@ for part_number in np.arange(total_part):
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
             'optimization_params': {'train_epoch': 300,
-                                   'test_epoch': 0,
+                                   'test_epoch': 10,
                                    'L2': 0.0,
                                    'train_lr': 0.01,
-                                   'test_lr' : 0.0},
-           'network_params': {'NHID': 5,
+                                   'test_lr' : 0.001},
+           'network_params': {'NHID': 1,
                               'NONLIN' : 'rbf'}}
   
   
@@ -54,7 +54,7 @@ for part_number in np.arange(total_part):
   sample_sizes = np.array([3, 3, 5, 5, 5, 9, 9, 9, 17, 17, 17, 33])
   
   train_blocks = 150
-  test_blocks = 300
+  test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
   # Optimization parameters
@@ -91,8 +91,9 @@ for part_number in np.arange(total_part):
                 }
   
   
-  test_data = {'X': torch.cat((expt.data_gen_GT(test_blocks),
-                                 X[-test_blocks*N_trials:]), dim = 0),
+  test_data = {'X': expt.data_gen_GT(test_blocks),
+               #'X': torch.cat((expt.data_gen_GT(test_blocks),
+                                                #X[-test_blocks*N_trials:]), dim = 0),              
                'y_hrm': None,
                'y_am': None,
                }

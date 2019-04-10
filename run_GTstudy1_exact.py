@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 6
+  total_part = 20
 
 hrms = []
 ams = []
@@ -37,7 +37,7 @@ for part_number in np.arange(total_part):
                                    'L2': 0.0,
                                    'train_lr': 0.01,
                                    'test_lr' : 0.0},
-           'network_params': {'NHID': 1,
+           'network_params': {'NHID': 5,
                               'NONLIN' : 'rbf'}}
   
   

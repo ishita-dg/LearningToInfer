@@ -317,7 +317,7 @@ class Urn ():
         
         return priors, likls[:, 0], likls[:, 1] 
 
-    def assign_PL_replications(self, N_balls, N_blocks, expt_name):
+    def assign_PL_replications(self, N_balls, N_blocks, expt_name, fix_prior = False, fix_ll = False):
         
         if expt_name == "PM":
             Ps = np.linspace(0.1,0.9,9)
@@ -327,6 +327,10 @@ class Urn ():
         elif expt_name == "PE":
             Ps = np.array([0.5])
             LRs = np.array([[85.0, 15.0], [70.0,30.0], [55.0,45.0]])/(1.0*N_balls) 
+            
+        if fix_prior:
+            Ps = Ps*0 + 0.5
+            LRs = LRs*0 + 0.5
             
         
         priors = np.random.choice(Ps, N_blocks)
