@@ -6,6 +6,15 @@ log_odds <- function(x){
   return(log(x/(1.0 - x)))
 }
 
+lm_eqn <- function(df, x, y){
+  m <- lm(y ~ x, df);
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(coef(m)[1], digits = 2),
+                        b = format(coef(m)[2], digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));
+}
+
 setwd("~/GitHub/LearningToInfer/data")
 
 get_df <- function(fn){
@@ -66,7 +75,7 @@ plot<- function(df, title){
           legend.position = "bottom",
           panel.border = element_rect(colour = "black", fill=NA, size=2))
   
- return(p1) 
+  return(p1) 
 }
 
 fn = "N_part19__expt_nameGTstudy1__NHID5__NONLINrbf__L20.0__test_epoch0__test_lr0.0__train_epoch300__train_lr0.01__plot_data"
@@ -81,31 +90,70 @@ grid.arrange(p1, p2, nrow = 1)
 g <- arrangeGrob(p1, p2, nrow = 1)
 ggsave(file = "GT.png", g)
 
-# #************************************
-# data <- fromJSON(txt=fn)
-# 
-# true_llo = log(log_odds(data$hrms))
-# model_llo = log(log_odds(data$ams))
-# strength_l = log(abs(data$strength))
-# weight_l = log(data$weight*33)
-# exact = rep(c(rep(TRUE, 300), rep(FALSE, 300)), 20)
-# 
-# df0 = data.frame(strength = strength_l,
-#                  weight = weight_l,
-#                  which = rep(c(rep('True', 300), rep('Random', 300)), 20))
-# 
-# p0 <- ggplot(df0, aes(x=strength, col=which)) + 
-#   geom_density(bw = 0.5)
-# p0
-# 
-# 
-# temp_s = strength_l[exact]
-# temp_w = weight_l[exact]
-# temp_model = model_llo[exact]
-# flag2 = temp_s < median(temp_s)
-# 
-# model_lm <- lm(temp_model[flag2] - log(log(0.6/0.4)) ~ temp_s[flag2] + temp_w[flag2] + 0)
-# summary(model_lm)
-# 
-# model_lm0 <- lm(temp_model[!flag2] - log(log(0.6/0.4)) ~ temp_s[!flag2] + temp_w[!flag2] + 0)
-# summary(model_lm0)
+#************************************
+data <- fromJSON(txt=fn)
+
+true_llo = log(log_odds(data$hrms))
+model_llo = log(log_odds(data$ams))
+strength_l = log(abs(data$strength))
+weight_l = log(data$weight*33)
+exact = rep(c(rep(TRUE, 300), rep(FALSE, 300)), 20)
+
+
+df = data.frame(strength_l = strength_l[exact],
+                weight_l = weight_l[exact],
+                y = true_llo[exact])
+
+
+corr <-lm(df$y - log(log(0.6/0.4)) ~ df$strength_l)
+summary(corr)
+
+p1<- ggplot(df,aes(x = strength_l,y =y))+#stat_summary(fun.data=mean_cl_normal) + 
+  geom_point()+
+  geom_smooth(method='lm') + annotate("text", x = -0.5, y = -0.5, 
+                                      label = paste("R2 = ", as.character(round(summary(corr)$r.squared, digits = 3))))
+p1
+
+corr <-lm(df$y - log(log(0.6/0.4)) ~ df$weight_l)
+summary(corr)
+
+p2<- ggplot(df,aes(x = weight_l,y =y))+#stat_summary(fun.data=mean_cl_normal) + 
+  geom_point()+
+  geom_smooth(method='lm') + annotate("text", x = 3, y = -0.5, 
+                                      label = paste("R2 = ", as.character(round(summary(corr)$r.squared, digits = 3))))
+p2
+
+grid.arrange(p1, p2, nrow = 1)
+g <- arrangeGrob(p1, p2, nrow = 1)
+ggsave(file = "GT_rsquare.png", g)
+
+#**************************************
+
+df = data.frame(strength_l = strength_l[exact],
+                weight_l = weight_l[exact],
+                y = model_llo[exact])
+
+
+corr <-lm(df$y - log(log(0.6/0.4)) ~ df$strength_l)
+summary(corr)
+
+p1<- ggplot(df,aes(x = strength_l,y =y))+#stat_summary(fun.data=mean_cl_normal) + 
+  geom_point()+
+  geom_smooth(method='lm') + annotate("text", x = -0.5, y = -0.5, 
+                                      label = paste("R2 = ", as.character(round(summary(corr)$r.squared, digits = 3))))
+p1
+
+corr <-lm(df$y - log(log(0.6/0.4)) ~ df$weight_l)
+summary(corr)
+
+p2<- ggplot(df,aes(x = weight_l,y =y))+#stat_summary(fun.data=mean_cl_normal) + 
+  geom_point()+
+  geom_smooth(method='lm') + annotate("text", x = 3, y = -0.5, 
+                                      label = paste("R2 = ", as.character(round(summary(corr)$r.squared, digits = 3))))
+p2
+
+grid.arrange(p1, p2, nrow = 1)
+g <- arrangeGrob(p1, p2, nrow = 1)
+ggsave(file = "GT_rsquare_model.png", g)
+
+
