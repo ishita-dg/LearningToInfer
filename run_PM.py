@@ -30,9 +30,9 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'fix_prior': True,
+            'fix_prior': False,
             'fix_ll': False,
-            'optimization_params': {'train_epoch': 30,
+            'optimization_params': {'train_epoch': 1,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.05,
@@ -135,7 +135,7 @@ all_priors = np.reshape(np.array(all_priors), (-1))
 all_conds = np.reshape(np.array(conds), (-1))
   
   
-# Plotting
+## Plotting
 clip_mask, priors, all_ARs = utils.find_AR(hrms, ams, all_priors, randomize = True, clip = [-00.0, 100])
 
 priors = priors[clip_mask]
@@ -145,38 +145,38 @@ conds = all_conds[clip_mask]
 #which_urn = np.random.binomial(1, 1.0, test_data['prior'].shape)
 #new_priors = which_urn*test_data['prior'] + (1 - which_urn)*(1.0-test_data['prior'])
 
-fig, ax = plt.subplots(1, 1)
+#fig, ax = plt.subplots(1, 1)
 jump = 0.1
 bins = np.arange(0.0, 1.0, jump)
 plot_data = {'x': bins+jump,
              'priors': priors,
              'ARs' : ARs,
              'conds': conds,
-             'priors': all_priors[clip_mask],
-             'ams': ams[clip_mask],
-             'hrms': hrms[clip_mask]
+             'priors': all_priors,
+             'ams': ams,
+             'hrms': hrms
              }
 
-for cond in np.sort(np.unique(conds)):
-  mask = conds == cond
-  x, y = 1.0 - priors[mask], ARs[mask]
-  Y_means = []
-  Y_errs = []
-  digitized = np.digitize(x - 0.01, bins)
-  for d in np.arange(len(bins)):
-    Y_means.append(np.mean(y[digitized == d+1]))
-    Y_errs.append(np.var(y[digitized == d+1]))
+#for cond in np.sort(np.unique(conds)):
+  #mask = conds == cond
+  #x, y = 1.0 - priors[mask], ARs[mask]
+  #Y_means = []
+  #Y_errs = []
+  #digitized = np.digitize(x - 0.01, bins)
+  #for d in np.arange(len(bins)):
+    #Y_means.append(np.mean(y[digitized == d+1]))
+    #Y_errs.append(np.var(y[digitized == d+1]))
   
-  ax.plot(bins+jump, Y_means, label = str(cond))
-  ax.axhline(1.0, c = 'k')
-  plot_data['y' + str(cond)] = np.array(Y_means)
-  #ax.scatter(x,y, label = str(cond))
+  #ax.plot(bins+jump, Y_means, label = str(cond))
+  #ax.axhline(1.0, c = 'k')
+  #plot_data['y' + str(cond)] = np.array(Y_means)
+  ##ax.scatter(x,y, label = str(cond))
 
-ax.set_ylim([-0.1, 4.0])
+#ax.set_ylim([-0.1, 4.0])
 
-plt.legend()
-#plt.show()
-plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
+#plt.legend()
+##plt.show()
+#plt.savefig('figs/AR_' + storage_id + 'full_0cutoff.pdf')
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
         
