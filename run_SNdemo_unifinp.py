@@ -52,7 +52,7 @@ for part_number in np.arange(total_part):
   test_blocks = 500
   N_blocks = train_blocks + test_blocks
   
-  N_balls = 1000
+  #N_balls = 1000
   
   # Optimization parameters
   train_epoch = config['optimization_params']['train_epoch']
@@ -92,7 +92,7 @@ for part_number in np.arange(total_part):
                 }
   
   
-  block_vals =  expt.assign_PL_demo(N_balls, test_blocks, bias = False)
+  block_vals =  expt.assign_PL_demo(test_blocks, bias = False)
   indices = np.repeat(block_vals[-1], N_trials)
   priors = np.repeat(block_vals[0], N_trials) 
   X = expt.data_gen(block_vals[:-1], N_trials)

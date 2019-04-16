@@ -157,7 +157,7 @@ class Urn ():
             if variable_ss is not None:
                 Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[1]/variable_ss[i]  
             else:
-                Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[:-1] / 20.0              
+                Ns[i*N_trials : (i+1)*N_trials, 0] = 1.0*delNs[:-1] / N_trials              
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
             lik1s[i*N_trials : (i+1)*N_trials, 0] = l1 * np.ones(N_trials)
             lik2s[i*N_trials : (i+1)*N_trials, 0] = l2 * np.ones(N_trials)            
@@ -166,9 +166,10 @@ class Urn ():
             
         
         X = np.hstack((draws, lik1s, lik2s, pris, Ns))
+        normalized_ss = 1.0*variable_ss / max(variable_ss)
         if variable_ss is not None:
             X = np.hstack((draws, lik1s, lik2s, pris, Ns, 
-                           variable_ss.reshape((-1, 1))/33.0
+                           normalized_ss.reshape((-1, 1))
                            ))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
@@ -322,11 +323,19 @@ class Urn ():
         if expt_name == "PM":
             Ps = np.linspace(0.1,0.9,9)
             LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0]])/(1.0*N_balls)
-            #LRs = np.array([[3.0,2.0], [4.0,2.0], [5.0,2.0], [5.0,1.0], [3.0, 3.0], [1.0, 1.0], [5.0, 5.0]])
+            
+            LRs = LRs*N_balls
+            row_sums = LRs.sum(axis=1)
+            LRs = LRs / row_sums[:, np.newaxis]   
+            
 
         elif expt_name == "PE":
             Ps = np.array([0.5])
             LRs = np.array([[85.0, 15.0], [70.0,30.0], [55.0,45.0]])/(1.0*N_balls) 
+            
+        elif expt_name == "MW":
+            Ps = np.array([0.02, 0.05, 0.10, 0.20, 0.98, 0.95, 0.90, 0.80])
+            LRs = np.array([[0.4, 0.6], [0.25,0.75], [0.1,0.9]])
             
         if fix_prior:
             Ps = Ps*0 + 0.5
@@ -361,7 +370,7 @@ class Urn ():
         return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
         
 
-    def assign_PL_demo(self, N_balls, N_blocks, bias = False):
+    def assign_PL_demo(self, N_blocks, bias = False):
             
             Ps = np.linspace(0.001,0.999,999)
             LRs = np.vstack((Ps, 1.0 - Ps)).T

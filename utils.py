@@ -73,8 +73,12 @@ def gaussian_entropy(std):
     return 0.5 * len(std) * (1.0 + torch.log(norm)) + torch.sum(log_std)
 
 def log_softmax(p, axis = 1):
-    sums = np.sum(np.exp(p), axis = axis)
-    return np.log(np.exp(p)/sums[:, None])
+  '''
+  Currently assumes only 2 values in p
+  '''
+  sums = np.sum(np.exp(p), axis = axis)
+  return np.log(np.exp(p)/sums[:, None])
+  #return p - np.logaddexp(p[0, 0], p[0, 1])
 
 def inv_logit(p):
     return np.exp(p) / (1 + np.exp(p))

@@ -260,13 +260,13 @@ class UrnRational():
         if (N == 0):
             return(np.array([0.0, 0.0]))
         sign = (int(N/np.abs(N)) + 1.0)/2.0
-        likl = sign*lik + (1-sign)*(1.0 - lik)
+        likl = sign*lik.astype('float64') + (1-sign)*(1.0 - lik.astype('float64'))
         likl = (likl)**abs(N)
         return np.log(likl)
     
     def pred_logprior(self, pri, N):
         p0 = pri
-        return np.log(np.clip(np.array([1.0 - p0, p0]), 0.01, 0.99))
+        return np.log(np.clip(np.array([1.0 - p0, p0]), 0.0001, 0.9999))
     
     def log_joint(self, draw, lik, pri, N):
         return self.pred_loglik(draw, lik, N) + self.pred_logprior(pri, N)
@@ -275,6 +275,7 @@ class UrnRational():
         # draw is 0 if col is one that is more un urn 0
         # lik if the prob of col 0 in urn 0
         p = self.log_joint(draw, lik, pri, N)
+        p = p.astype('float64')
         return np.exp(p)/sum(np.exp(p))
     
 
@@ -293,7 +294,7 @@ class UrnRational():
             ljs.append(self.log_joint(draw, lik, pri, N))
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
@@ -317,14 +318,14 @@ class UrnRational():
             ljs.append(self.log_joint(draw, lik, pri, N))
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
 
         return data
         
-    def train_GT(self, data):
+    def train_GT(self, data, max_N = 33):
             
         count = 0
         preds = []
@@ -333,21 +334,21 @@ class UrnRational():
         for x in data["X"]:
             count += 1                
             draw, lik1, lik2, pri, N_ratio, N_t = x.numpy()
-            N = N_ratio*N_t*33
+            N = N_ratio*N_t*max_N
             draw = None
             lik = np.array([lik1, lik2])
             preds.append(self.pred_post(draw, lik, pri, N))
             ljs.append(self.log_joint(draw, lik, pri, N))
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
         
         return data
     
-    def test_GT (self, data, name = None):
+    def test_GT (self, data, max_N = 33, name = None):
         # validate approx_models - will come back to this for resource rationality
         err = 0 
         err_prob = 0
@@ -357,7 +358,7 @@ class UrnRational():
         
         for x in data["X"]:
             draw, lik1, lik2, pri, N_ratio, N_t = x.numpy()
-            N = N_ratio*N_t*33
+            N = N_ratio*N_t*max_N
             draw = None
             lik = np.array([lik1, lik2])
             pred = self.pred_post(draw, lik, pri, N)
@@ -365,7 +366,7 @@ class UrnRational():
             ljs.append(self.log_joint(draw, lik, pri, N))
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
@@ -413,7 +414,7 @@ class ButtonRational():
             block_vals.append(last)
         
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         lj0 = torch.from_numpy(np.array(ljs)).view(-1,2,2)
         data["log_joint"] = lj0.type(torch.FloatTensor)
@@ -432,7 +433,7 @@ class ButtonRational():
             f_joints.append(self.log_joint(last, msf, N))
             
         pred0 = torch.from_numpy(np.array(preds)).view(-1,2)
-        data["y_hrm"] = pred0.type(torch.FloatTensor)
+        data["y_hrm"] = pred0.type(torch.DoubleTensor)
         
         data["log_joint"] = f_joints
         
