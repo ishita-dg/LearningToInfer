@@ -17,8 +17,10 @@ import json
 
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
+  nhid = int(sys.argv[2])
 else:
   total_part = 28
+  nhid = 1
 
 hrms = []
 ams = []
@@ -34,13 +36,13 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'Bias' : False, 
-            'optimization_params': {'train_epoch': 30,
+            'noise_blocks' : 50, 
+            'optimization_params': {'train_epoch': 40,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.01,
                                    'test_lr' : 0.0},
-           'network_params': {'NHID': 1,
+           'network_params': {'NHID': nhid,
                               'NONLIN' : 'rbf'}}
   
   
@@ -51,14 +53,14 @@ for part_number in np.arange(total_part):
   config['expt_name'] = expt_name
   
   sub_es = ['PM65', 'PSM65', 'GT92', 'BH80', 'DD74', 'BWB70', 
-            'GHR65', 'Gr92', 'HS09', 'KW04-1', 'KW04-2', 'MC72', 
+            'GHR65', 'Gr92', 'HS09', 'KW04', 'MC72', 
             'Ne01', 'SK07']
   E = sub_es[part_number%len(sub_es)]
   
   # Parameters for generating the training data
   
   N_trials = 1
-  train_blocks = 50
+  train_blocks = 150
   test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
@@ -86,10 +88,17 @@ for part_number in np.arange(total_part):
   # equalize prior
   X[-test_blocks*N_trials:, 3] = 0.5
   
+  N_random = config['noise_blocks']
+  max_r_ss = min(10, max_N)
+  block_vals =  expt.assign_PL_demo(N_random)
+  random_ss = np.random.choice(1.0 + np.arange(max_r_ss), N_random)
+  random_X = expt.data_gen(block_vals[:-1], 1, variable_ss = random_ss)
+  
   print(E)
   
   # Create the data frames
-  train_data = {'X': X[train_blocks*N_trials:],
+  train_data = {'X': torch.cat((random_X,
+                                 X[train_blocks*N_trials:]), dim = 0),
                 'log_joint': None,
                 'y_hrm': None,
                 'y_am': None,
@@ -132,7 +141,7 @@ for part_number in np.arange(total_part):
   hrms.append(test_data['y_hrm'][:, 1])
   ams.append(test_data['y_am'][:, 1])
   strengths.append(test_data['X'][:, -2])
-  weights.append(test_data['X'][:, -1])
+  weights.append(test_data['X'][:, -1]*max_N)
   priors.append(test_data['X'][:, 3])
   lik_ratios.append(test_data['X'][:, 1] / test_data['X'][:, 2])
   which.append([E]*test_blocks)
@@ -145,9 +154,9 @@ strengths = np.reshape(np.array(strengths), (-1))
 weights = np.reshape(np.array(weights), (-1))
 priors = np.reshape(np.array(priors), (-1))
 lik_ratios = np.reshape(np.array(lik_ratios), (-1))
-which = list(np.reshape(np.array(which), (-1)))
 
 notnan = np.logical_not(np.isnan(ams))
+which = list(np.reshape(np.array(which), (-1))[notnan])
 
 plot_data = {'ams': ams[notnan],
              'hrms': hrms[notnan],
