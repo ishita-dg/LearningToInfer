@@ -18,7 +18,7 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
 else:
-  total_part = 50
+  total_part = 28
 
 hrms = []
 ams = []
@@ -26,6 +26,7 @@ priors = []
 lik_ratios = []
 strengths = []
 weights = []
+which = []
 
 for part_number in np.arange(total_part):
   
@@ -49,13 +50,16 @@ for part_number in np.arange(total_part):
   expt_name = "Benj" # PM, PE, SR, EU, CP
   config['expt_name'] = expt_name
   
+  sub_es = ['PM65', 'PSM65', 'GT92', 'BH80', 'DD74', 'BWB70', 
+            'GHR65', 'Gr92', 'HS09', 'KW04-1', 'KW04-2', 'MC72', 
+            'Ne01', 'SK07']
+  E = sub_es[part_number%len(sub_es)]
+  
   # Parameters for generating the training data
   
   N_trials = 1
-  sample_sizes = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 33, 48])
-  
-  train_blocks = 150
-  test_blocks = 300
+  train_blocks = 50
+  test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
   # Optimization parameters
@@ -78,9 +82,11 @@ for part_number in np.arange(total_part):
   
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
-  block_vals =  expt.assign_PL_demo(N_blocks, bias = config['Bias'])
-  ss_vals = np.random.choice(sample_sizes, N_blocks)
-  X, true_urns = expt.data_gen(block_vals[:-1], N_trials, same_urn = True, return_urns = True, variable_ss = ss_vals)
+  X, max_N = expt.data_gen_Benj(N_blocks, which = E)
+  # equalize prior
+  X[-test_blocks*N_trials:, 3] = 0.5
+  
+  print(E)
   
   # Create the data frames
   train_data = {'X': X[train_blocks*N_trials:],
@@ -99,7 +105,7 @@ for part_number in np.arange(total_part):
   
   
   # training models
-  train_data = rational_model.train_GT(train_data, max_N = max(ss_vals))
+  train_data = rational_model.train_GT(train_data, max_N = max_N)
   approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                         lr=train_lr, 
                                         weight_decay = L2)
@@ -107,7 +113,7 @@ for part_number in np.arange(total_part):
   #utils.save_model(approx_model, name = storage_id + 'trained_model')
   
   # testing models
-  test_data = rational_model.test_GT(test_data, max_N = max(ss_vals))
+  test_data = rational_model.test_GT(test_data, max_N = max_N)
   approx_model.optimizer = optim.SGD(approx_model.parameters(), 
                                         lr=test_lr)
   test_data = approx_model.test(test_data, test_epoch, N_trials)
@@ -129,6 +135,7 @@ for part_number in np.arange(total_part):
   weights.append(test_data['X'][:, -1])
   priors.append(test_data['X'][:, 3])
   lik_ratios.append(test_data['X'][:, 1] / test_data['X'][:, 2])
+  which.append([E]*test_blocks)
   
   
 
@@ -138,7 +145,7 @@ strengths = np.reshape(np.array(strengths), (-1))
 weights = np.reshape(np.array(weights), (-1))
 priors = np.reshape(np.array(priors), (-1))
 lik_ratios = np.reshape(np.array(lik_ratios), (-1))
-
+which = list(np.reshape(np.array(which), (-1)))
 
 notnan = np.logical_not(np.isnan(ams))
 
@@ -147,7 +154,8 @@ plot_data = {'ams': ams[notnan],
              'strengths': strengths[notnan],
              'weights': weights[notnan],
              'priors': priors[notnan],
-             'lik_ratios': lik_ratios[notnan]}
+             'lik_ratios': lik_ratios[notnan],
+             'sub_exp': which}
 
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')      

@@ -255,7 +255,7 @@ class UrnRational():
         '''
         TODO: Ensure that NU has the right lik convention
         '''
-        if draw is not None:
+        if draw > -0.5:
             N += (2*draw - 1)
         if (N == 0):
             return(np.array([0.0, 0.0]))

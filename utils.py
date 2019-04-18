@@ -76,9 +76,10 @@ def log_softmax(p, axis = 1):
   '''
   Currently assumes only 2 values in p
   '''
-  sums = np.sum(np.exp(p), axis = axis)
-  return np.log(np.exp(p)/sums[:, None])
-  #return p - np.logaddexp(p[0, 0], p[0, 1])
+  #sums = np.sum(np.exp(p), axis = axis)
+  #return np.log(np.exp(p)/sums[:, None])
+  #print(np.round(p - np.logaddexp(p[0, 0], p[0, 1]) - np.log(np.exp(p)/sums[:, None])), 3)
+  return p - np.logaddexp(p[0, 0], p[0, 1])
 
 def inv_logit(p):
     return np.exp(p) / (1 + np.exp(p))
@@ -126,7 +127,8 @@ def save_data(input_data, name):
     fn = './data/' + name
     
     for key in data:
-      data[key] = [float(x) for x in data[key].flatten()]
+      if key != 'sub_exp' :
+        data[key] = [float(x) for x in data[key].flatten()]
     with open(fn, 'wb') as outfile:
       json.dump(data, outfile, cls=DecimalEncoder)
     return

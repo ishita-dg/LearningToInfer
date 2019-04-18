@@ -134,13 +134,13 @@ class Urn ():
                 else:
                     lik = l2
                 
-                if variable_ss is not None:
+                if variable_ss is not None:                        
                     draws_b.append(0.0)
                     heads = np.random.binomial(variable_ss[i], lik, 1)
                     tails = variable_ss[i] - heads
-                    delN += (heads - tails)[0]
-                    delNs.append(delN)
-                    
+                    delN = (heads - tails)[0]
+                    delNs.append(delN)            
+                        
                 else:
                     draw = np.random.binomial(1, lik, 1)
                     draws_b.append(draw)
@@ -155,7 +155,11 @@ class Urn ():
             if fixed: draws_b = np.ones(N_trials)
             delNs = np.array(delNs, dtype = np.float)
             if variable_ss is not None:
-                Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[1]/variable_ss[i]  
+                if variable_ss[i] == 0:
+                    denom = 1.0
+                else: 
+                    denom = variable_ss[i]  
+                Ns[i*N_trials : (i+1)*N_trials, 0] = delNs[1]/denom
             else:
                 Ns[i*N_trials : (i+1)*N_trials, 0] = 1.0*delNs[:-1] / N_trials              
             draws[i*N_trials : (i+1)*N_trials, 0] = draws_b
@@ -165,12 +169,13 @@ class Urn ():
             true_urns[i*N_trials : (i+1)*N_trials] = urn_b
             
         
-        X = np.hstack((draws, lik1s, lik2s, pris, Ns))
-        normalized_ss = 1.0*variable_ss / max(variable_ss)
         if variable_ss is not None:
+            normalized_ss = 1.0*variable_ss / max(variable_ss)
             X = np.hstack((draws, lik1s, lik2s, pris, Ns, 
                            normalized_ss.reshape((-1, 1))
                            ))
+        else:
+            X = np.hstack((draws, lik1s, lik2s, pris, Ns, np.ones(shape = (N_trials*N_blocks, 1))))
         X = torch.from_numpy(X)
         X = X.type(torch.FloatTensor)
         
@@ -221,6 +226,256 @@ class Urn ():
         X = X.type(torch.FloatTensor)
         
         return X
+    
+    
+    def data_gen_Benj(self, N_blocks, which = None):
+        '''
+        Fixed observations
+        '''
+        
+        if which == 'GT92':            
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            X_options = np.zeros((12, 6))
+            X_options[:, :4] = np.array([-1.0, 0.4, 0.6, 0.5])
+            #Nh, Nt, N
+            raw_options = np.array([
+                [2, 1, 3],
+                [3, 0, 3],
+                [3, 2, 5],
+                [4, 1, 5],
+                [5, 0, 5],
+                [5, 4, 9],
+                [6, 3, 9],
+                [7, 2, 9],
+                [9, 8, 17],
+                [10, 7, 17],
+                [11, 6, 17],
+                [19, 14, 33]
+            ])
+            N_ratio = 1.0*(raw_options[:, 0] - raw_options[:, 1])/raw_options[:, 2]
+            N_t = raw_options[:, 2]/33.0
+            X_options[:, -2] = N_ratio
+            X_options[:, -1] = N_t
+            inverse_X = X_options.copy()
+            inverse_X[:, 1] = X_options[:, 2].copy()
+            inverse_X[:, 2] = X_options[:, 1].copy()
+            inverse_X[:, -2] = inverse_X[:, -2]*-1
+            
+            all_options = np.vstack((X_options, inverse_X))
+            
+            choices = np.random.choice(np.arange(12), N_blocks)
+            X = all_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)
+            maxN = 33.0
+            
+        if which == 'BH80':
+            lik0s = 0.2*np.ones(N_blocks)
+            lik1s = 1.0 - lik0s
+            options = [15.0, 85.0]
+            priors = np.tile(options, N_blocks/2)/100.0
+            block_vals = (priors, lik0s, lik1s)
+            
+            X = self.data_gen(block_vals, 1, fixed = True)
+            X[:, 4] = (2*X[:, 0] - 1)
+            X[:, 0] = -1  
+            maxN = 1.0
+            
+        if which == 'PM65':
+            block_vals =  self.assign_PL_replications(6, N_blocks, 'PM', False, False)
+            X = self.data_gen(block_vals[:-1], 1)
+            X[:, 4] = (2*X[:, 0] - 1)
+            X[:, 0] = -1  
+            maxN = 1.0
+            
+        if which == 'DD74':
+            
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            X_options = np.zeros((8, 6))
+            X_options[:, 0] = -1.0
+            #Nh, Nt, N
+            raw_options = np.array([
+                [0.45, 0.55, 0.5, -1, 1],
+                [0.55, 0.45, 0.5, 1, 1],
+                [0.88, 0.12, 0.5, 1, 0.5],
+                [0.12, 0.88, 0.5, -1, 0.5],
+                [0.45, 0.55, 0.5, 1, 1],
+                [0.55, 0.45, 0.5, -1, 1],
+                [0.88, 0.12, 0.5, -1, 0.5],
+                [0.12, 0.88, 0.5, 1, 0.5]                
+                
+            ])
+            X_options[:, 1:] = raw_options
+            
+            choices = np.random.choice(np.arange(8), N_blocks)
+            X = X_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)  
+            maxN = 4
+        if which == 'BWB70':
+            SS = np.random.choice([4, 5, 6, 7, 8, 9, 10], N_blocks)
+            priors = np.random.choice([0.5], N_blocks)
+            L1s = np.random.choice([0.7, 0.8, 0.3, 0.2], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 10
+        if which == 'GHR65':
+            SS = np.random.choice([1, 3, 6, 9], N_blocks)
+            priors = np.random.choice([0.5], N_blocks)
+            L1s = np.random.choice([0.6, 0.8, 0.4, 0.2], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 9 
+        if which == 'Gr92':
+            SS = np.random.choice([6], N_blocks)
+            priors = np.random.choice([0.5, 0.66, 0.33], N_blocks)
+            L1s = np.random.choice([0.5714286, 0.4285714], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 6              
+        if which == 'HS09':
+            SS = np.random.choice([0, 1, 2, 3, 4], N_blocks)
+            priors = np.random.choice([0.5, 0.66, 0.33], N_blocks)
+            L1s = np.random.choice([0.66, 0.33], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 4
+        if which == 'KW04-1':
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            X_options = np.zeros((16, 6))
+            X_options[:, 0] = -1.0
+            #Nh, Nt, N
+            raw_options = np.array([
+                [0.4, 0.6, 0.5, -1, 1.0/25],
+                [0.6, 0.4, 0.5, 1, 1.0/25],
+                [0.6, 0.4, 0.5, 1, 5.0/25],
+                [0.4, 0.6, 0.5, -1, 5.0/25],
+                [0.4, 0.6, 0.5, -1, 15.0/25],
+                [0.6, 0.4, 0.5, 1, 15.0/25],
+                [0.4, 0.6, 0.5, -1, 25.0/25],
+                [0.6, 0.4, 0.5, 1, 25.0/25],
+                [0.4, 0.6, 0.5, 1, 1.0/25],
+                [0.6, 0.4, 0.5, -1, 1.0/25],
+                [0.6, 0.4, 0.5, -1, 5.0/25],
+                [0.4, 0.6, 0.5, 1, 5.0/25],
+                [0.4, 0.6, 0.5, 1, 15.0/25],
+                [0.6, 0.4, 0.5, -1, 15.0/25],
+                [0.4, 0.6, 0.5, 1, 25.0/25],
+                [0.6, 0.4, 0.5, -1, 25.0/25]
+                
+            ])
+            X_options[:, 1:] = raw_options
+            
+            choices = np.random.choice(np.arange(16), N_blocks)
+            X = X_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)  
+            maxN = 25
+        if which == 'KW04-2':
+            priors = np.random.choice([0.5], N_blocks)
+            tempL1 = np.array([80, 60, 52, 48, 40, 20])/100.0
+            tempL2 = 60*np.ones(len(tempL1))/100.0
+            L1_choices = tempL1 /(tempL1 + tempL2)
+            L1s = np.random.choice(L1_choices, N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1)
+            X[:, 4] = (2*X[:, 0] - 1)
+            X[:, 0] = -1  
+            maxN = 1      
+        if which == 'MC72':
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            X_options = np.zeros((28, 6))
+            X_options[:, 0] = -1.0
+            X_options[:, -1] = 1.0
+            #Nh, Nt, N
+            raw_options = np.array([
+                [0.4, 0.6, 0.5, 2/10.0],
+                [0.4, 0.6, 0.5, 3/10.0],
+                [0.4, 0.6, 0.5, 4/10.0],
+                [0.4, 0.6, 0.5, 5/10.0],
+                [0.4, 0.6, 0.5, 6/10.0],
+                [0.4, 0.6, 0.5, 7/10.0],
+                [0.4, 0.6, 0.5, 8/10.0],
+                [0.6, 0.4, 0.5, 2/10.0],
+                [0.6, 0.4, 0.5, 3/10.0],
+                [0.6, 0.4, 0.5, 4/10.0],
+                [0.6, 0.4, 0.5, 5/10.0],
+                [0.6, 0.4, 0.5, 6/10.0],
+                [0.6, 0.4, 0.5, 7/10.0],
+                [0.6, 0.4, 0.5, 8/10.0],
+                
+            ])
+            raw_options_neg = raw_options.copy()
+            raw_options_neg[:,-1] = -1 * raw_options[:,-1]
+            X_options[:, 1:5] = np.vstack([raw_options, raw_options_neg])
+            
+            choices = np.random.choice(np.arange(28), N_blocks)
+            X = X_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)  
+            maxN = 10
+            
+        if which == 'Ne01':
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            X_options = np.zeros((20, 6))
+            X_options[:, 0] = -1.0
+            X_options[:, -1] = 1.0
+            #Nh, Nt, N
+            raw_options = np.array([
+                [0.6, 0.4, 0.5, 5/17.0, 1.0],
+                [0.6, 0.4, 0.5, 3/17.0, 1.0],
+                [0.6, 0.4, 0.5, 1/17.0, 1.0],
+                [0.4, 0.6, 0.5, -5/17.0, 1.0],
+                [0.4, 0.6, 0.5, -3/17.0, 1.0],
+                [0.4, 0.6, 0.5, -1/17.0, 1.0],
+                [0.6, 0.4, 0.5, 3/3.0, 3.0/17.0], 
+                [0.6, 0.4, 0.5, 1/3.0, 3.0/17.0],
+                [0.4, 0.6, 0.5, -3/3.0, 3.0/17.0], 
+                [0.4, 0.6, 0.5, -1/3.0, 3.0/17.0]                
+                
+            ])
+            raw_options_neg = raw_options.copy()
+            raw_options_neg[:,-2] = -1 * raw_options[:,-2]
+            X_options[:, 1:] = np.vstack([raw_options, raw_options_neg])
+            
+            
+            choices = np.random.choice(np.arange(20), N_blocks)
+            X = X_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)  
+            maxN = 17
+    
+        if which == 'PSM65':
+            SS = np.random.choice([1, 4, 12, 48], N_blocks)
+            priors = np.random.choice([0.5], N_blocks)
+            L1s = np.random.choice([0.6, 0.4], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1            
+            maxN = 48
+        
+        if which == 'SK07':
+            SS = np.random.choice([1, 2, 3, 4], N_blocks)
+            priors = np.random.choice([0.5], N_blocks)
+            L1s = np.random.choice([0.6, 0.4], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 4     
+            
+        return X, maxN 
+
 
     
     
@@ -370,10 +625,13 @@ class Urn ():
         return priors.reshape((-1)), likls.reshape((-1,2))[:, 0], likls.reshape((-1,2))[:, 1], l_inds
         
 
-    def assign_PL_demo(self, N_blocks, bias = False):
+    def assign_PL_demo(self, N_blocks, eq_prior = False, bias = False):
             
             Ps = np.linspace(0.001,0.999,999)
             LRs = np.vstack((Ps, 1.0 - Ps)).T
+            if eq_prior:
+                Ps = np.array([0.5])
+            
             
             priors = np.random.choice(Ps, N_blocks)
             l_inds = np.random.choice(np.arange(len(LRs)), N_blocks)
