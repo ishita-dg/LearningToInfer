@@ -75,7 +75,7 @@ plot_ss <- function(data){
 }
 plot_raw_logodds <- function(data){
   p <- ggplot(data, aes(x = true_los, y = model_los, col = sub_exp, shape = sub_exp)) + 
-    # xlim(c(-10, 10)) + ylim(c(-4, 4))+ 
+    xlim(c(-15, 15)) + ylim(c(-15, 15))+
     geom_smooth(aes(x = true_los, y = model_los), method = 'loess', 
                 inherit.aes = FALSE, col = 'black', span = 1.0) + 
     stat_smooth(mapping = aes(x = true_los, y = model_los), method = 'lm', 
@@ -162,15 +162,16 @@ exclude = c('PSM65')
 
 p = plot_raw_logodds(data)
 p
+ggsave(file = "raw_logodds_NHID1.png", p)
 p = plot_logodds(data)
 p
-# ggsave(file = "logodds_NHID1.png", p)
+ggsave(file = "logodds_NHID1.png", p)
 
 p = plot_ss(data)
 p
-# ggsave(file = "samplesize_NHID1.png", p)
+ggsave(file = "samplesize_NHID1.png", p)
 
 p = plot_diag(data)
 p
-# ggsave(file = "diagnosticity_NHID1.png", p)
+ggsave(file = "diagnosticity_NHID1.png", p)
 
