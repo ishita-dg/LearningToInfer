@@ -19,7 +19,7 @@ if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
   nhid = int(sys.argv[2])
 else:
-  total_part = 28
+  total_part = 28*10
   nhid = 1
 
 hrms = []
@@ -36,8 +36,8 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'noise_blocks' : 50, 
-            'optimization_params': {'train_epoch': 40,
+            'noise_blocks' : 100, 
+            'optimization_params': {'train_epoch': 50,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.01,

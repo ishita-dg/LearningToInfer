@@ -60,38 +60,53 @@ plot_ss <- function(data){
                   ARs = d_summary$..1
   )
   ds = unique(ds)
+  # ds$exp_group <- mapvalues(ds$exp, from = all_exps, 
+                            # to = map_all_exps)
   
-  p <- ggplot(ds, aes(x = Ns, y = ARs, col = exp)) + 
-    geom_jitter(width = 1) + xlim(c(-1, 40)) + ylim(c(-0.2, 1.6)) + #geom_smooth(method = 'loess') + 
+  
+  p <- ggplot(ds, aes(x = Ns, y = ARs, col = exp, shape = exp)) + 
+    # xlim(c(-1, 40)) + ylim(c(-0.2, 1.6)) + #geom_smooth(method = 'loess') + 
     # stat_smooth(method = 'lm', se = FALSE)
-    stat_smooth(mapping = aes(x = Ns, y = ARs), method = 'lm', inherit.aes = FALSE, col = 'black')
+    stat_smooth(mapping = aes(x = Ns, y = ARs), method = 'lm', 
+                inherit.aes = FALSE, col = 'black', span = 1.0) + geom_point()+
+    scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   # geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
   return(p)
 }
 plot_raw_logodds <- function(data){
-  # N = length(data$sub_exp)/1400
-  # data$shapes <- rep(c(rep(c(1, 2, 3, 4, 6, 1, 2), each = 200)), N)
-  p <- ggplot(data, aes(x = true_los, y = model_los, col = sub_exp)) + 
-    geom_point() + xlim(c(-10, 10)) + ylim(c(-4, 4))+ 
-    geom_smooth(aes(x = true_los, y = model_los), method = 'loess', inherit.aes = FALSE, col = 'black') + 
-    stat_smooth(mapping = aes(x = true_los, y = model_los), method = 'lm', inherit.aes = FALSE, col = 'black') +
-    geom_abline(intercept = 0.0, slope = 1.0, col = 'black')
+  p <- ggplot(data, aes(x = true_los, y = model_los, col = sub_exp, shape = sub_exp)) + 
+    # xlim(c(-10, 10)) + ylim(c(-4, 4))+ 
+    geom_smooth(aes(x = true_los, y = model_los), method = 'loess', 
+                inherit.aes = FALSE, col = 'black', span = 1.0) + 
+    stat_smooth(mapping = aes(x = true_los, y = model_los), method = 'lm', 
+                inherit.aes = FALSE, col = 'black') +
+    geom_abline(intercept = 0.0, slope = 1.0, col = 'black') + geom_point()+
+    scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   return(p)
 }
 plot_logodds <- function(data){
   # data$tl_bins = .bincode(data$true_los, quantile(data$true_los, probs = seq(0.0, 1.0, 0.05)))
-  d_summary = ddply(data,.(true_los, sub_exp), summarise, mean_model_los = mean(model_los), mean_true_los = mean(true_los))
-  p <- ggplot(d_summary, aes(x = mean_true_los, y = mean_model_los, col = sub_exp)) + 
-    geom_point() + xlim(c(-10, 10)) + ylim(c(-4, 4))+ 
-    geom_smooth(aes(x = mean_true_los, y = mean_model_los), method = 'loess', inherit.aes = FALSE, col = 'black') + 
-    stat_smooth(mapping = aes(x = mean_true_los, y = mean_model_los), method = 'lm', inherit.aes = FALSE, col = 'black', span = 1.0) +
-    geom_abline(intercept = 0.0, slope = 1.0, col = 'black')
+  data$random_reassign = sample(c(1, 2), replace = TRUE, size = length(data$true_los))
+  d_summary = ddply(data,.(true_los, sub_exp, random_reassign), summarise, 
+                    mean_model_los = mean(model_los), mean_true_los = mean(true_los))
+  d_summary$exp_group <- mapvalues(d_summary$sub_exp, from = all_exps, 
+                            to = map_all_exps)
+  
+  # d_summary$int <- paste(d_summary$sub_exp, d_summary$exp_group, sep=".")
+  p <- ggplot(d_summary, aes(x = mean_true_los, y = mean_model_los, col = sub_exp, shape = sub_exp)) + 
+    # xlim(c(-10, 10)) + ylim(c(-4, 4))+ 
+    geom_smooth(aes(x = mean_true_los, y = mean_model_los), method = 'loess', 
+                inherit.aes = FALSE, col = 'black') + 
+    stat_smooth(mapping = aes(x = mean_true_los, y = mean_model_los), method = 'lm', 
+                inherit.aes = FALSE, col = 'black', span = 1.5) +
+    geom_abline(intercept = 0.0, slope = 1.0, col = 'black') + geom_point()+
+    scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   return(p)
 }
 plot_diag <- function(data){
   
   # diagnosticity
-  data$random_reassign = sample(c(1, 2, 3, 4), replace = TRUE, size = length(data$thetas))
+  data$random_reassign = sample(c(1, 2), replace = TRUE, size = length(data$thetas))
   d_summary = ddply(data,.(thetas, sub_exp, random_reassign), summarise, get_AR(model_los, lik_los))
   ds = data.frame(thetas = d_summary$thetas,
                   exp = d_summary$sub_exp,
@@ -107,18 +122,27 @@ plot_diag <- function(data){
   # 
   
   
-  p <- ggplot(ds, aes(x = thetas, y = ARs, col = exp)) + 
-    geom_jitter(width = 0.01) + xlim(c(0.55, 0.85)) + ylim(c(-0.5, 1.6)) + #geom_smooth(method = 'loess') + 
-    # stat_smooth(method = 'lm')
-    stat_smooth(mapping = aes(x = thetas, y = ARs), method = 'lm', inherit.aes = FALSE, col = 'black')
+  p <- ggplot(ds, aes(x = thetas, y = ARs, col = exp, shape = exp)) + 
+    # xlim(c(0.55, 0.85)) + ylim(c(-0.5, 1.6)) + #geom_smooth(method = 'loess') + 
+     # stat_smooth(method = 'lm')
+    stat_smooth(mapping = aes(x = thetas, y = ARs), method = 'lm', 
+                inherit.aes = FALSE, col = 'black', span = 1.0) + 
+    geom_jitter(width = 0.05)+
+    scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   # geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
   return(p)
 }
 #***************************
 fn = "N_part27__expt_nameBenj__NHID1__NONLINrbf__noise_blocks100__L20.0__test_epoch0__test_lr0.0__train_epoch40__train_lr0.01__plot_data_SS0"
-fn = "N_part27__expt_nameBenj__NHID1__NONLINrbf__noise_blocks50__L20.0__test_epoch0__test_lr0.0__train_epoch40__train_lr0.01__plot_data"
+fn = "N_part279__expt_nameBenj__NHID1__NONLINrbf__noise_blocks100__L20.0__test_epoch0__test_lr0.0__train_epoch40__train_lr0.01__plot_data"
 
 data = get_data(fn)
+
+all_exps = sort(unique(data$sub_exp))
+map_all_exps = seq(1, length(all_exps))
+data$exp_group <- mapvalues(data$sub_exp, from = all_exps, 
+                             to = map_all_exps)
+
 d0 = ddply(data,.(sub_exp), summarise, get_corr(true_los, model_los))
 d = data.frame(exp = d0$sub_exp,
                corr = d0$..1
@@ -128,12 +152,12 @@ p
 # ggsave(file = "corrs_NHID1.png", p)
 # 
 # exclude = d$exp[d$corr < 0.0]
-exclude = c('SK07', 'KW04')
+exclude = c('PSM65')
 # exclude = c('PSM65', 'MC72', 'BWB70', 'GHR65', 'DD74')
-for (exp in exclude){
-  print(exp)
-  data = subset(data, sub_exp != exp)
-}
+# for (exp in exclude){
+#   print(exp)
+#   data = subset(data, sub_exp != exp)
+# }
 
 
 p = plot_raw_logodds(data)
