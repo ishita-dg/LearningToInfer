@@ -18,9 +18,11 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
   nhid = int(sys.argv[2])
+  train_e = int(sys.argv[3])
 else:
-  total_part = 28*10
-  nhid = 1
+  total_part = 15*10
+  nhid = 2
+  train_e = 50
 
 hrms = []
 ams = []
@@ -36,8 +38,11 @@ for part_number in np.arange(total_part):
   
   # Modify in the future to read in / sysarg
   config = {'N_part' : part_number,
-            'noise_blocks' : 100, 
-            'optimization_params': {'train_epoch': 50,
+            'diff_noise': True,
+            'noise_blocks' : 150, 
+            'query_manip': True, 
+            'train_blocks' : 150,
+            'optimization_params': {'train_epoch': train_e,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.01,
@@ -53,14 +58,22 @@ for part_number in np.arange(total_part):
   config['expt_name'] = expt_name
   
   sub_es = ['PM65', 'PSM65', 'GT92', 'BH80', 'DD74', 'BWB70', 
-            'GHR65', 'Gr92', 'HS09', 'KW04', 'MC72', 
+            'GHR65', 'Gr92', 'HS09', 'KW04', 'KW04', 'MC72', 'MC72', 
             'Ne01', 'SK07']
   E = sub_es[part_number%len(sub_es)]
+    
   
   # Parameters for generating the training data
   
   N_trials = 1
-  train_blocks = 150
+  noise_blocks = config['noise_blocks']
+  train_blocks = config['train_blocks']
+  net_blocks = noise_blocks + train_blocks
+  
+  if ((E == 'PSM65' or E == 'GT92') and config['diff_noise']):
+    noise_blocks = int(noise_blocks/2)
+    train_blocks = net_blocks - noise_blocks
+    
   test_blocks = 100
   N_blocks = train_blocks + test_blocks
   
@@ -85,27 +98,48 @@ for part_number in np.arange(total_part):
   approx_model = expt.get_approxmodel(OUT_DIM, INPUT_SIZE, NHID, NONLIN)
   rational_model = expt.get_rationalmodel(N_trials) 
   X, max_N = expt.data_gen_Benj(N_blocks, which = E)
-  # equalize prior
-  X[-test_blocks*N_trials:, 3] = 0.5
   
-  N_random = config['noise_blocks']
+  # equalize prior for test cases
+  #X[:, 5] = 0.5
+  test_X = X[-test_blocks*N_trials:, :]
+  test_X[:, 3] = 0.5
+  #filter_prior = (test_X[:, 3] == 0.5).view((-1,1))
+  #test_X = torch.masked_select(test_X, filter_prior).view((-1,6))
+  
+
   max_r_ss = min(10, max_N)
-  block_vals =  expt.assign_PL_demo(N_random)
-  random_ss = np.random.choice(1.0 + np.arange(max_r_ss), N_random)
+  block_vals =  expt.assign_PL_demo(noise_blocks)
+  random_ss = np.random.choice(1.0 + np.arange(max_r_ss), noise_blocks)
   random_X = expt.data_gen(block_vals[:-1], 1, variable_ss = random_ss)
   
   print(E)
   
+  # query distribution manipulation
+  train_X = torch.cat((random_X,
+                       X[:train_blocks*N_trials]), dim = 0)
+  
+  if config['query_manip']:
+    new_Ns = np.random.choice([0.0, 1.0/max_N, -1.0/max_N], 
+                              net_blocks, 
+                              p = [0.8, 0.1, 0.1])
+    new_Ns = torch.from_numpy(new_Ns)
+    new_Ns = new_Ns.type(torch.FloatTensor)    
+    #train_X[:, 1] = 0.7
+    #train_X[:, 2] = 0.3
+    #train_X[:, 2] = 0.5
+    train_X[:, 4] = new_Ns
+    #train_X[:, 5] = 1.0
+    #maxN = 8
+  
   # Create the data frames
-  train_data = {'X': torch.cat((random_X,
-                                 X[train_blocks*N_trials:]), dim = 0),
+  train_data = {'X': train_X,
                 'log_joint': None,
                 'y_hrm': None,
                 'y_am': None,
                 }
   
   
-  test_data = {'X': X[-test_blocks*N_trials:],
+  test_data = {'X': test_X,
                'y_hrm': None,
                'y_am': None,
                }
@@ -167,6 +201,6 @@ plot_data = {'ams': ams[notnan],
              'sub_exp': which}
 
 
-utils.save_data(plot_data, name = storage_id + 'plot_data')      
+utils.save_data(plot_data, name = storage_id + 'unif_samples_plot_data')      
 # Plotting
 

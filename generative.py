@@ -351,86 +351,114 @@ class Urn ():
             X = self.data_gen(block_vals, 1, variable_ss = SS)
             X[:, 0] = -1  
             maxN = 4
-        #if which == 'KW04-1':
-            ##X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
-            #X_options = np.zeros((16, 6))
-            #X_options[:, 0] = -1.0
-            ##Nh, Nt, N
-            #raw_options = np.array([
-                #[0.4, 0.6, 0.5, -1, 1.0/25],
-                #[0.6, 0.4, 0.5, 1, 1.0/25],
-                #[0.6, 0.4, 0.5, 1, 5.0/25],
-                #[0.4, 0.6, 0.5, -1, 5.0/25],
-                #[0.4, 0.6, 0.5, -1, 15.0/25],
-                #[0.6, 0.4, 0.5, 1, 15.0/25],
-                #[0.4, 0.6, 0.5, -1, 25.0/25],
-                #[0.6, 0.4, 0.5, 1, 25.0/25],
-                #[0.4, 0.6, 0.5, 1, 1.0/25],
-                #[0.6, 0.4, 0.5, -1, 1.0/25],
-                #[0.6, 0.4, 0.5, -1, 5.0/25],
-                #[0.4, 0.6, 0.5, 1, 5.0/25],
-                #[0.4, 0.6, 0.5, 1, 15.0/25],
-                #[0.6, 0.4, 0.5, -1, 15.0/25],
-                #[0.4, 0.6, 0.5, 1, 25.0/25],
-                #[0.6, 0.4, 0.5, -1, 25.0/25]
-                
-            #])
-            #L = raw_options.shape[0]
-            #X_options = np.zeros((L, 6))
-            #X_options[:, 0] = -1.0
-            
-            #X_options[:, 1:] = raw_options
-            
-            #choices = np.random.choice(np.arange(L), N_blocks)
-            #X = X_options[choices, :]
-            #X = torch.from_numpy(X)
-            #X = X.type(torch.FloatTensor)  
-            #maxN = 25
         if which == 'KW04':
-            priors = np.random.choice([0.5], N_blocks)
-            tempL1 = np.array([80, 60, 52])/100.0
-            tempL2 = 60*np.ones(len(tempL1))/100.0
-            L1_choices = tempL1 /(tempL1 + tempL2)
-            L1s = np.random.choice(L1_choices, N_blocks)
-            L2s = 1.0 - L1s
-            block_vals = (priors, L1s, L2s)
-            X = self.data_gen(block_vals, 1)
-            X[:, 4] = (2*X[:, 0] - 1)
-            X[:, 0] = -1  
-            maxN = 1      
-        if which == 'MC72':
-            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
-            #Nh, Nt, N
-            raw_options = np.array([
-                [0.4, 0.6, 0.5, 2/10.0],
-                [0.4, 0.6, 0.5, 3/10.0],
-                [0.4, 0.6, 0.5, 4/10.0],
-                [0.4, 0.6, 0.5, 5/10.0],
-                [0.4, 0.6, 0.5, 6/10.0],
-                [0.4, 0.6, 0.5, 7/10.0],
-                [0.4, 0.6, 0.5, 8/10.0],
-                #[0.6, 0.4, 0.5, 2/10.0],
-                #[0.6, 0.4, 0.5, 3/10.0],
-                #[0.6, 0.4, 0.5, 4/10.0],
-                #[0.6, 0.4, 0.5, 5/10.0],
-                #[0.6, 0.4, 0.5, 6/10.0],
-                #[0.6, 0.4, 0.5, 7/10.0],
-                #[0.6, 0.4, 0.5, 8/10.0],
+            group = np.random.choice([1, 2])
+            if group == 1:
+                priors = np.random.choice([0.5], N_blocks)
+                tempL1 = np.array([80, 60, 52])/100.0
+                tempL2 = 60*np.ones(len(tempL1))/100.0
+                L1_choices = tempL1 /(tempL1 + tempL2)
+                L1s = np.random.choice(L1_choices, N_blocks)
+                L2s = 1.0 - L1s
+                block_vals = (priors, L1s, L2s)
+                X = self.data_gen(block_vals, 1)
+                X[:, 4] = (2*X[:, 0] - 1)
+                X[:, 0] = -1  
+                maxN = 1    
+            elif group == 2:
+                raw_options = np.array([
+                    [0.4, 0.6, 0.5, -1, 1.0/25],
+                    [0.4, 0.6, 0.5, -1, 5.0/25],
+                    [0.4, 0.6, 0.5, -1, 15.0/25],
+                    [0.4, 0.6, 0.5, -1, 25.0/25],
+                    [0.4, 0.6, 0.5, 1, 1.0/25],
+                    [0.4, 0.6, 0.5, 1, 5.0/25],
+                    [0.4, 0.6, 0.5, 1, 15.0/25],
+                    [0.4, 0.6, 0.5, 1, 25.0/25],
+                    
+                ])
+                L = raw_options.shape[0]
+                X_options = np.zeros((L, 6))
+                X_options[:, 0] = -1.0
                 
-            ])
-            L = raw_options.shape[0]
-            X_options = np.zeros((2*L, 6))
-            X_options[:, 0] = -1.0
-            X_options[:, -1] = 1.0            
-            raw_options_neg = raw_options.copy()
-            raw_options_neg[:,-1] = -1 * raw_options[:,-1]
-            X_options[:, 1:5] = np.vstack([raw_options, raw_options_neg])
-            
-            choices = np.random.choice(np.arange(2*L), N_blocks)
-            X = X_options[choices, :]
-            X = torch.from_numpy(X)
-            X = X.type(torch.FloatTensor)  
-            maxN = 10
+                X_options[:, 1:] = raw_options
+                
+                choices = np.random.choice(np.arange(L), N_blocks)
+                X = X_options[choices, :]
+                X = torch.from_numpy(X)
+                X = X.type(torch.FloatTensor)  
+                maxN = 25   
+                
+        if which == 'MC72':
+            group = np.random.choice([1, 2])
+            if group == 1 :
+                #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+                #Nh, Nt, N
+                raw_options = np.array([
+                    [0.4, 0.6, 0.5, 2/10.0],
+                    [0.4, 0.6, 0.5, 3/10.0],
+                    [0.4, 0.6, 0.5, 4/10.0],
+                    [0.4, 0.6, 0.5, 5/10.0],
+                    [0.4, 0.6, 0.5, 6/10.0],
+                    [0.4, 0.6, 0.5, 7/10.0],
+                    [0.4, 0.6, 0.5, 8/10.0],
+                    #[0.6, 0.4, 0.5, 2/10.0],
+                    #[0.6, 0.4, 0.5, 3/10.0],
+                    #[0.6, 0.4, 0.5, 4/10.0],
+                    #[0.6, 0.4, 0.5, 5/10.0],
+                    #[0.6, 0.4, 0.5, 6/10.0],
+                    #[0.6, 0.4, 0.5, 7/10.0],
+                    #[0.6, 0.4, 0.5, 8/10.0],
+                    
+                ])
+                L = raw_options.shape[0]
+                X_options = np.zeros((2*L, 6))
+                X_options[:, 0] = -1.0
+                X_options[:, -1] = 1.0            
+                raw_options_neg = raw_options.copy()
+                raw_options_neg[:,-1] = -1 * raw_options[:,-1]
+                X_options[:, 1:5] = np.vstack([raw_options, raw_options_neg])
+                
+                choices = np.random.choice(np.arange(2*L), N_blocks)
+                X = X_options[choices, :]
+                X = torch.from_numpy(X)
+                X = X.type(torch.FloatTensor)  
+                maxN = 10
+                
+            elif group == 2:
+                #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+                #Nh, Nt, N
+                raw_options = np.array([
+                    [0.4, 0.6, 0.5, 1/20.0],
+                    [0.4, 0.6, 0.5, 2/20.0],
+                    [0.4, 0.6, 0.5, 3/20.0],
+                    [0.4, 0.6, 0.5, 4/20.0],
+                    [0.4, 0.6, 0.5, 5/20.0],
+                    [0.4, 0.6, 0.5, 6/20.0],
+                    [0.4, 0.6, 0.5, 7/20.0],
+                    [0.4, 0.6, 0.5, 8/20.0],
+                    [0.4, 0.6, 0.5, 9/20.0],
+                    [0.4, 0.6, 0.5, 10/20.0],
+                    [0.4, 0.6, 0.5, 11/20.0],
+                    [0.4, 0.6, 0.5, 12/20.0],
+                    [0.4, 0.6, 0.5, 13/20.0],
+                    [0.4, 0.6, 0.5, 14/20.0]
+                    
+                ])
+                L = raw_options.shape[0]
+                X_options = np.zeros((2*L, 6))
+                X_options[:, 0] = -1.0
+                X_options[:, -1] = 1.0            
+                raw_options_neg = raw_options.copy()
+                raw_options_neg[:,-1] = -1 * raw_options[:,-1]
+                X_options[:, 1:5] = np.vstack([raw_options, raw_options_neg])
+                
+                choices = np.random.choice(np.arange(2*L), N_blocks)
+                X = X_options[choices, :]
+                X = torch.from_numpy(X)
+                X = X.type(torch.FloatTensor)  
+                maxN = 20                
+                
             
         if which == 'Ne01':
             #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
