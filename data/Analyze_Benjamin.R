@@ -150,7 +150,7 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
                     mean_prior_los = median(prior_los, na.rm = TRUE), mean_adjusted_los = median(adjusted_los, na.rm = TRUE))
   p <- ggplot(d_summary, aes(x = mean_prior_los, y = mean_adjusted_los, col = sub_exp, shape = sub_exp)) + 
     theme_classic() + xlim(c(-2.5, 2.5)) + ylim(c(-3, 3))+ 
-    geom_point(size = 3) +
+    geom_jitter(size = 3, width = 0.05) +
     xlab(TeX("$log   \\frac{P(A)}{P(B)}$"))+
     ylab(TeX("$log  \\frac{\\pi(A | d)}{\\pi(B| d)} - \\hat{\\alpha_L} \\frac{\\P(d | A)}{\\P(d| B)}$"))+
     stat_smooth(mapping = aes(x = mean_prior_los, y = mean_adjusted_los), method = 'lm', 
@@ -218,7 +218,7 @@ plot_diag <- function(data, N = 3){
   return(p)
 }
 #***************************
-hidden = 2
+hidden = 8
 type = 'prior'
 setting = paste(hidden, type, sep = '')
 if (hidden == 2){
@@ -229,7 +229,6 @@ if (hidden == 2){
     fn = "N_part149__diff_noiseTrue__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__query_manipTrue__train_blocks150__unif_samples_plot_data"
   }
   else if(type == 'prior'){
-    # fn = "N_part119__diff_noiseFalse__expt_nameBenj_prior__NHID8__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch200__train_lr0.01__train_blocks150__plot_data"
     fn = "N_part179__diff_noiseFalse__expt_nameBenj_prior__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch60__train_lr0.01__train_blocks150__plot_data"
     # fn = "N_part79__diff_noiseTrue__expt_nameBenj_prior__NHID1__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__train_blocks150__plot_data"
   }
