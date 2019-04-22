@@ -270,6 +270,55 @@ class Urn ():
             X = X.type(torch.FloatTensor)
             maxN = 33.0
             
+        if which == 'GT92-p':            
+            #X = np.hstack((draws, lik1s, lik2s, pris, N_ratio, N_t))
+            raw_options = np.array([
+                [0.9, 0.5],
+                [0.9, 0.6],
+                [0.9, 0.7],
+                [0.9, 0.8],
+                [0.9, 0.9],
+                [0.66, 0.5],
+                [0.66, 0.6],
+                [0.66, 0.7],
+                [0.66, 0.8],
+                [0.66, 0.9],
+                [0.5, 0.5],
+                [0.5, 0.6],
+                [0.5, 0.7],
+                [0.5, 0.8],
+                [0.5, 0.9],
+                [0.1, 0.5],
+                [0.1, 0.6],
+                [0.1, 0.7],
+                [0.1, 0.8],
+                [0.1, 0.9],
+                [0.33, 0.5],
+                [0.33, 0.6],
+                [0.33, 0.7],
+                [0.33, 0.8],
+                [0.33, 0.9],
+                [0.5, 0.5],
+                [0.5, 0.6],
+                [0.5, 0.7],
+                [0.5, 0.8],
+                [0.5, 0.9],
+            ])
+            L = raw_options.shape[0]  
+            X_options = np.zeros((2*L, 6))
+            X_options[:, :3] = np.array([-1.0, 0.4, 0.6])
+            X_options[:, -1] = 1.0
+            
+            raw_options_neg = raw_options.copy()
+            raw_options_neg[:,-1] = -1 * raw_options[:,-1]
+            X_options[:, 3:5] = np.vstack([raw_options, raw_options_neg])
+            
+            choices = np.random.choice(np.arange(2*L), N_blocks)
+            X = X_options[choices, :]
+            X = torch.from_numpy(X)
+            X = X.type(torch.FloatTensor)     
+            maxN = 10.0
+            
         if which == 'BH80':
             lik0s = 0.2*np.ones(N_blocks)
             lik1s = 1.0 - lik0s
@@ -327,6 +376,15 @@ class Urn ():
         if which == 'GHR65':
             SS = np.random.choice([1, 3, 6, 9], N_blocks)
             priors = np.random.choice([0.5], N_blocks)
+            L1s = np.random.choice([0.6, 0.8], N_blocks)
+            L2s = 1.0 - L1s
+            block_vals = (priors, L1s, L2s)
+            X = self.data_gen(block_vals, 1, variable_ss = SS)
+            X[:, 0] = -1  
+            maxN = 9 
+        if which == 'GHR65-p':
+            SS = np.random.choice([1, 3, 6, 9], N_blocks)
+            priors = np.random.choice([0.75, 0.25], N_blocks)
             L1s = np.random.choice([0.6, 0.8], N_blocks)
             L2s = 1.0 - L1s
             block_vals = (priors, L1s, L2s)

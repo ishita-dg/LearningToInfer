@@ -18,9 +18,11 @@ import json
 if len(sys.argv) > 1:
   total_part = int(sys.argv[1])
   nhid = int(sys.argv[2])
+  t_epochs = int(sys.argv[3])
 else:
-  total_part = 4*20
-  nhid = 1
+  total_part = 6*20
+  nhid = 2
+  t_epochs = 50
 
 hrms = []
 ams = []
@@ -39,7 +41,7 @@ for part_number in np.arange(total_part):
             'diff_noise': False,
             'noise_blocks' : 150, 
             'train_blocks' : 150,
-            'optimization_params': {'train_epoch': 50,
+            'optimization_params': {'train_epoch': t_epochs,
                                    'test_epoch': 0,
                                    'L2': 0.0,
                                    'train_lr': 0.01,
@@ -54,7 +56,8 @@ for part_number in np.arange(total_part):
   expt_name = "Benj_prior" # PM, PE, SR, EU, CP
   config['expt_name'] = expt_name
   
-  sub_es = ['PM65', 'BH80', 'Gr92', 'HS09']
+  sub_es = ['PM65', 'BH80', 'Gr92', 'HS09', 
+            'GHR65-p', 'GT92-p']
   E = sub_es[part_number%len(sub_es)]
     
   
@@ -63,11 +66,6 @@ for part_number in np.arange(total_part):
   N_trials = 1
   noise_blocks = config['noise_blocks']
   train_blocks = config['train_blocks']
-  
-  if ((E == 'PSM65' or E == 'GT92') and config['diff_noise']):
-    net_blocks = noise_blocks + train_blocks
-    noise_blocks = int(noise_blocks/2)
-    train_blocks = net_blocks - noise_blocks
     
   test_blocks = 100
   N_blocks = train_blocks + test_blocks

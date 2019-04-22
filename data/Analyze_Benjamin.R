@@ -74,8 +74,8 @@ plot_ss <- function(data, N = 3){
     theme_classic() + xlim(c(-1, 50)) + ylim(c(-0.5, 3.0)) + #
     geom_smooth(mapping = aes(x = Ns, y = ARs), method = 'loess',  linetype="dotdash", 
     inherit.aes = FALSE, col = 'black', span = 1.75) +
-    # xlab(TeX("$N$"))+
-    # ylab(TeX("$\\hat{\\alpha_L} = \\frac{log   \\frac{\\pi(A| d)}{\\pi(B| d)}}{log   \\frac{P(A| d)}{P(B| d)}}$"))+
+    xlab(TeX("$N$"))+
+    ylab(TeX("$\\hat{\\alpha_L} = \\frac{log   \\frac{\\pi(A| d)}{\\pi(B| d)}}{log   \\frac{P(A| d)}{P(B| d)}}$"))+
     # stat_smooth(method = 'lm', se = FALSE)
     theme(legend.position = 'none', legend.text=element_text(size=8), axis.text=element_text(size=10),
           axis.title=element_text(size=10),
@@ -134,7 +134,7 @@ plot_logodds <- function(data, N = 3){
 plot_priorlogodds <- function(data, N = 3, raw = TRUE){
   
   # diagnosticity
-  data$random_reassign = sample(seq(1, 1), replace = TRUE, size = length(data$thetas))
+  data$random_reassign = sample(seq(1, N), replace = TRUE, size = length(data$thetas))
   d_summary = ddply(data,.(sub_exp, random_reassign), summarise, get_AR(model_los, lik_los))
   ds = data.frame(exp = d_summary$sub_exp,
                   ARs = d_summary$..1,
@@ -145,13 +145,20 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
                               to = ds$ARs))
   data$adjusted_los <- data$model_los - data$ARs*data$lik_los
   
-  p <- ggplot(data, aes(x = prior_los, y = adjusted_los, col = sub_exp, shape = sub_exp)) + 
-    theme_classic() + xlim(c(-2, 2)) + ylim(c(-5, 5))+ geom_point() +
+  data$random_reassign = sample(seq(1, N), replace = TRUE, size = length(data$true_los))
+  d_summary = ddply(data,.(prior_los, sub_exp, random_reassign), summarise, 
+                    mean_prior_los = median(prior_los, na.rm = TRUE), mean_adjusted_los = median(adjusted_los, na.rm = TRUE))
+  p <- ggplot(d_summary, aes(x = mean_prior_los, y = mean_adjusted_los, col = sub_exp, shape = sub_exp)) + 
+    theme_classic() + xlim(c(-2.5, 2.5)) + ylim(c(-3, 3))+ 
+    geom_point(size = 3) +
     xlab(TeX("$log   \\frac{P(A)}{P(B)}$"))+
     ylab(TeX("$log  \\frac{\\pi(A | d)}{\\pi(B| d)} - \\hat{\\alpha_L} \\frac{\\P(d | A)}{\\P(d| B)}$"))+
-    stat_smooth(mapping = aes(x = prior_los, y = adjusted_los), method = 'lm', 
+    stat_smooth(mapping = aes(x = mean_prior_los, y = mean_adjusted_los), method = 'lm', 
                 inherit.aes = FALSE, col = 'black') +
-    theme(legend.position = 'bottom', legend.text=element_text(size=14), 
+    # stat_smooth(mapping = aes(x = mean_prior_los, y = mean_adjusted_los), method = 'loess', 
+    #             inherit.aes = FALSE, linetype="dotdash", col = 'black', span = 1.5) +
+    geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + 
+    theme(legend.position = 'none', legend.text=element_text(size=14), 
           axis.text=element_text(size=10),         
           axis.title=element_text(size=10),
           axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
@@ -220,12 +227,11 @@ if (hidden == 2){
     }
   else if (type == 'biased'){
     fn = "N_part149__diff_noiseTrue__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__query_manipTrue__train_blocks150__unif_samples_plot_data"
-    # fn = "N_part14__diff_noiseTrue__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__query_manipTrue__train_blocks150__unif_samples_plot_data"
-    # fn = "N_part149__diff_noiseTrue__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__query_manipTrue__train_blocks150__plot_data"
-    # fn = "N_part74__diff_noiseTrue__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch10__train_lr0.02__query_manipTrue__train_blocks150__plot_data"
   }
   else if(type == 'prior'){
-    fn = "N_part79__diff_noiseTrue__expt_nameBenj_prior__NHID1__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__train_blocks150__plot_data"
+    # fn = "N_part119__diff_noiseFalse__expt_nameBenj_prior__NHID8__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch200__train_lr0.01__train_blocks150__plot_data"
+    fn = "N_part179__diff_noiseFalse__expt_nameBenj_prior__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch60__train_lr0.01__train_blocks150__plot_data"
+    # fn = "N_part79__diff_noiseTrue__expt_nameBenj_prior__NHID1__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__train_blocks150__plot_data"
   }
   else{
     fn = "N_part299__expt_nameBenj__NHID2__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__train_blocks150__plot_data"
@@ -238,7 +244,11 @@ if(hidden == 5){
   fn = "N_part299__expt_nameBenj__NHID5__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch50__train_lr0.01__train_blocks150__plot_data"
   }
 if(hidden == 8){
-  fn = "N_part299__diff_noiseTrue__expt_nameBenj__NHID8__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch200__train_lr0.01__train_blocks150__plot_data"
+  if(type == 'prior'){
+    fn = "N_part119__diff_noiseFalse__expt_nameBenj_prior__NHID8__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch200__train_lr0.01__train_blocks150__plot_data"
+  }else {
+    fn = "N_part299__diff_noiseTrue__expt_nameBenj__NHID8__NONLINrbf__noise_blocks150__L20.0__test_epoch0__test_lr0.0__train_epoch200__train_lr0.01__train_blocks150__plot_data"
+  }
   }
 
 
@@ -246,12 +256,17 @@ if(hidden == 8){
 
 data = get_data(fn)
 
-all_exps = c('BH80','BWB70', 'DD74', 'GHR65', 'Gr92', 'GT92', 'HS09', 
+all_exps = c('BH80','BWB70', 'DD74', 'GHR65', 'GHR65-p', 'Gr92', 'GT92', 'GT92-p', 'HS09', 
              'KW04', 'MC72', 'Ne01', 'PM65', 'PSM65', 'SK07')
-map_all_exps = c(1, 20, 15, 18, 4, 15, 10, 0, 17, 6, 2, 5, 18)
+if (setting == 'prior'){
+  map_all_exps = c(2, 1, 4, 10, 18, 15)
+  }else {
+    map_all_exps = c(1, 20, 15, 18, 4, 15, 10, 0, 17, 6, 2, 5, 18)
+  }
 map_exp_names = c('Bar-Hillel (1980)', 'Beach, Wise & Barclay (1970)', 
                   'Donnell & Du Charme (1974)', 'Green, Halbert, & Robinson (1965)', 
-                  'Grether (1992)', 'Griffin & Tversky (1992)', 'Holt & Smith (2009)', 
+                  'Green, Halbert, & Robinson (1965)','Grether (1992)', 'Griffin & Tversky (1992)',
+                  'Griffin & Tversky (1992)', 'Holt & Smith (2009)', 
                   'Kraemer & Weber (2004)', 'Marks and Clarkson (1972)', 'Nelson et al (2001)', 
                   'Peterson & Miller (1965)', 'Peterson, Schneider, & Miller (1965)', 
                   'Sasaki & Kawagoe (2007)')
@@ -298,7 +313,7 @@ if (type == 'prior'){
   
   p = plot_ss(data, N = 3)
   p
-  ggsave(file = paste("samplesize_NHID", setting, "0.png", sep = ''), p)
+  ggsave(file = paste("samplesize_NHID", setting, ".png", sep = ''), p)
   
   p = plot_diag(data, N = 3)
   p
