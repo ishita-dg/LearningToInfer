@@ -149,7 +149,7 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
   d_summary = ddply(data,.(prior_los, sub_exp, random_reassign), summarise, 
                     mean_prior_los = median(prior_los, na.rm = TRUE), mean_adjusted_los = median(adjusted_los, na.rm = TRUE))
   p <- ggplot(d_summary, aes(x = mean_prior_los, y = mean_adjusted_los, col = sub_exp, shape = sub_exp)) + 
-    theme_classic() + xlim(c(-2.5, 2.5)) + ylim(c(-3, 3))+ 
+    theme_classic() + xlim(c(-2.1, 2.1)) + ylim(c(-3, 3))+ coord_fixed(ratio = 0.5) +
     geom_jitter(size = 3, width = 0.05) +
     xlab(TeX("$log   \\frac{P(A)}{P(B)}$"))+
     ylab(TeX("$log  \\frac{\\pi(A | d)}{\\pi(B| d)} - \\hat{\\alpha_L} \\frac{\\P(d | A)}{\\P(d| B)}$"))+
@@ -158,10 +158,10 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
     # stat_smooth(mapping = aes(x = mean_prior_los, y = mean_adjusted_los), method = 'loess', 
     #             inherit.aes = FALSE, linetype="dotdash", col = 'black', span = 1.5) +
     geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + 
-    theme(legend.position = 'none', legend.text=element_text(size=14), 
-          axis.text=element_text(size=10),         
-          axis.title=element_text(size=10),
-          axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
+    theme(legend.position = 'none', legend.text=element_text(size=8), 
+          axis.text=element_text(size=8),         
+          axis.title=element_text(size=8),
+          axis.title.y = element_text(size = 8, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   
   if (raw){
@@ -250,15 +250,20 @@ if(hidden == 8){
   }
   }
 
-
-
-
 data = get_data(fn)
+
+exclude = c('BH80')
+for (exp in exclude){
+  print(exp)
+  data = subset(data, sub_exp != exp)
+}
+
 
 all_exps = c('BH80','BWB70', 'DD74', 'GHR65', 'GHR65-p', 'Gr92', 'GT92', 'GT92-p', 'HS09', 
              'KW04', 'MC72', 'Ne01', 'PM65', 'PSM65', 'SK07')
 if (setting == 'prior'){
-  map_all_exps = c(2, 1, 4, 10, 18, 15)
+  map_all_exps = seq(1, length(unique(data$sub_exp)))
+  # map_all_exps = c(2, 1, 4, 10, 18, 15)
   }else {
     map_all_exps = c(1, 20, 15, 18, 4, 15, 10, 0, 17, 6, 2, 5, 18)
   }
@@ -289,12 +294,6 @@ p
 # ggsave(file = "corrs_NHID1.png", p)
 # 
 # exclude = d$exp[d$corr < 0.0]
-# exclude = c('PSM65')
-# exclude = c('PSM65', 'MC72', 'BWB70', 'GHR65', 'DD74')
-# for (exp in exclude){
-#   print(exp)
-#   data = subset(data, sub_exp != exp)
-# }
 
 # p = plot_raw_logodds(data)
 # ggsave(file = paste("raw_logodds_NHID", setting, ".png", sep = ''), p)
@@ -303,6 +302,7 @@ p
 if (type == 'prior'){
   p = plot_priorlogodds(data, N = 5)
   p
+  # ggsave(file = paste("legend_", setting, ".pdf", sep = ''), p)
   ggsave(file = paste("prior_NHID", setting, ".png", sep = ''), p)
 } else {
   
