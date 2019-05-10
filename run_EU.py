@@ -37,7 +37,7 @@ for part_number in np.arange(total_part):
                                    'test_epoch': 5,
                                    'L2': 0.0,
                                    'train_lr': 0.05,
-                                   'test_lr' : 0.01},
+                                   'test_lr' : 0.05},
             'network_params': {'NHID': 1,
                                'NONLIN' : 'rbf'}}
   

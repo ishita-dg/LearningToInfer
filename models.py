@@ -123,11 +123,16 @@ class MLP_disc(nn.Module):
                 datapoint["X"] = torch.cat((datapoint["X"], x.view(1, -1)), 0)
                 datapoint["log_joint"] = torch.cat((datapoint["y_log_joint"], lj.view(1, -1)), 0)
 
-            if (not count%N_trials):
+            #if (not count%N_trials):
+                #self = copy.deepcopy(orig)
+                #datapoint = {}
+            #else:
+            if sg_epoch > 0:
+                self.train(datapoint, sg_epoch, verbose = False)
+            else:
                 self = copy.deepcopy(orig)
                 datapoint = {}
-            else:
-                self.train(datapoint, sg_epoch, verbose = False)
+                
                 
             yval = self(autograd.Variable(x)).view(1,-1)
             yval = F.log_softmax(yval, dim = 1)
