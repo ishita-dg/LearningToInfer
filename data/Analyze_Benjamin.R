@@ -1,8 +1,8 @@
 library(jsonlite)
 library(ggplot2)
 require(gridExtra)
-require(plyr)
 library(latex2exp)
+library(plyr)
 
 
 setwd(" ~/GitHub/LearningToInfer/data")
@@ -77,14 +77,14 @@ plot_ss <- function(data, N = 3){
     xlab(TeX("$N$"))+
     ylab(TeX("$\\hat{\\alpha_L} = \\frac{log   \\frac{\\pi(A| d)}{\\pi(B| d)}}{log   \\frac{P(A| d)}{P(B| d)}}$"))+
     # stat_smooth(method = 'lm', se = FALSE)
-    theme(legend.position = 'none', legend.text=element_text(size=8), axis.text=element_text(size=10),
-          axis.title=element_text(size=10),
-          axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0))) +
+    theme(legend.position = 'right', legend.text=element_text(size=8), axis.text=element_text(size=14),
+          axis.title=element_text(size=14),
+          axis.title.y = element_text(size = 14, margin = margin(t = 0, r = -15, b = 0, l = 0))) +
     geom_abline(intercept = 1.0, slope = 0.0,  linetype="dotted",  col = 'black') +
     stat_smooth(mapping = aes(x = Ns, y = ARs), method = 'lm', 
                 inherit.aes = FALSE, col = 'black') + geom_jitter( size = 3, width = 0.5)+
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("") 
-  # theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=10),         axis.title=element_text(size=10)) + geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
+  # theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=14),         axis.title=element_text(size=14)) + geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
   return(p)
 }
 plot_raw_logodds <- function(data, distinct = FALSE, Nbins = 30){
@@ -101,8 +101,8 @@ plot_raw_logodds <- function(data, distinct = FALSE, Nbins = 30){
     # stat_smooth(mapping = aes(x = true_los, y = model_los), method = 'lm', 
     #             inherit.aes = FALSE, col = 'black') +
     theme(legend.position = 'none', legend.text=element_text(size=14), 
-          axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0)), 
-          axis.title=element_text(size=10)) + 
+          axis.title.y = element_text(size = 14, margin = margin(t = 0, r = -15, b = 0, l = 0)), 
+          axis.title=element_text(size=14)) + 
     geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + 
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   p0<-ggExtra::ggMarginal(p, type = "histogram", bins = Nbins)
@@ -115,7 +115,7 @@ plot_logodds <- function(data, N = 3){
                     mean_model_los = median(model_los, na.rm = TRUE), mean_true_los = median(true_los, na.rm = TRUE))
   # d_summary$int <- paste(d_summary$sub_exp, d_summary$exp_group, sep=".")
   p <- ggplot(d_summary, aes(x = mean_true_los, y = mean_model_los, col = sub_exp, shape = sub_exp)) + 
-    theme_classic() + xlim(c(-10, 15)) + ylim(c(-7, 7))+
+    theme_classic() + #xlim(c(-10, 15)) + ylim(c(-7, 7))+
     xlab(TeX("$log   \\frac{P(A| d)}{P(B| d)}$"))+
     ylab(TeX("$log  \\frac{\\pi(A| d)}{\\pi(B| d)}$"))+
     geom_smooth(aes(x = mean_true_los, y = mean_model_los), method = 'loess',  linetype="dotdash", 
@@ -123,9 +123,9 @@ plot_logodds <- function(data, N = 3){
     stat_smooth(mapping = aes(x = mean_true_los, y = mean_model_los), method = 'lm', 
                 inherit.aes = FALSE, col = 'black', span = 1.75) +
     theme(legend.position = 'none', legend.text=element_text(size=14), 
-          axis.text=element_text(size=10),         
-          axis.title=element_text(size=10),
-          axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
+          axis.text=element_text(size=14),         
+          axis.title=element_text(size=14),
+          axis.title.y = element_text(size = 14, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
     geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + geom_point( size = 3, )+
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   return(p)
@@ -161,7 +161,7 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
     theme(legend.position = 'none', legend.text=element_text(size=8), 
           axis.text=element_text(size=8),         
           axis.title=element_text(size=8),
-          axis.title.y = element_text(size = 8, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
+          axis.title.y = element_text(size = 14, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   
   if (raw){
@@ -175,7 +175,7 @@ plot_priorlogodds <- function(data, N = 3, raw = TRUE){
     theme_classic() + xlim(c(-15, 15)) + ylim(c(-7, 7))+
     stat_smooth(mapping = aes(x = mean_prior_los, y = mean_adjusted_los), method = 'lm', 
                 inherit.aes = FALSE, col = 'red') +
-    theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=10),         axis.title=element_text(size=10)) + geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + geom_point( size = 3 )+
+    theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=14),         axis.title=element_text(size=14)) + geom_abline(intercept = 0.0, slope = 1.0,  linetype="dotted",  col = 'black') + geom_point( size = 3 )+
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
   return(p)
 }
@@ -201,25 +201,25 @@ plot_diag <- function(data, N = 3){
   
   
   p <- ggplot(ds, aes(x = thetas, y = ARs, col = exp, shape = exp)) + 
-     theme_classic() + xlim(c(0.55, 0.85)) + ylim(c(-0.1, 1.5)) + #geom_smooth(method = 'loess',  linetype="dotdash") +
+     theme_classic() + xlim(c(0.55, 0.85)) + ylim(c(-0.1, 1.8)) + #geom_smooth(method = 'loess',  linetype="dotdash") +
      # stat_smooth(method = 'lm')
     xlab(TeX("$\\theta$"))+
     ylab(TeX("$\\hat{\\alpha_L} = \\frac{log\\frac{\\pi(A| d)}{\\pi(B| d)}}{log\\frac{P(A| d)}{P(B| d)}}$"))+
     stat_smooth(mapping = aes(x = thetas, y = ARs), method = 'lm', 
                 inherit.aes = FALSE, col = 'black', span = 1.75) + 
     theme(legend.position = 'none', legend.text=element_text(size=14), 
-          axis.text=element_text(size=10),         
-          axis.title=element_text(size=10),
-          axis.title.y = element_text(size = 10, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
+          axis.text=element_text(size=14),         
+          axis.title=element_text(size=14),
+          axis.title.y = element_text(size = 14, margin = margin(t = 0, r = -15, b = 0, l = 0))) + 
     geom_abline(intercept = 1.0, slope = 0.0,  linetype="dotted",  col = 'black') +
     geom_jitter( size = 4, width = 0.01)+
     scale_shape_manual("", values=map_all_exps) + scale_colour_discrete("")
-  # theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=10),         axis.title=element_text(size=10)) + geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
+  # theme(legend.position = 'none', legend.text=element_text(size=14), axis.text=element_text(size=14),         axis.title=element_text(size=14)) + geom_abline(intercept = 1.0, slope = 0.0, col = 'red')
   return(p)
 }
 #***************************
-hidden = 8
-type = 'prior'
+hidden = 2
+type = 'biased'
 setting = paste(hidden, type, sep = '')
 if (hidden == 2){
   if (type == 'notrain'){
@@ -251,12 +251,12 @@ if(hidden == 8){
   }
 
 data = get_data(fn)
-
-exclude = c('BH80')
-for (exp in exclude){
-  print(exp)
-  data = subset(data, sub_exp != exp)
-}
+# 
+# exclude = c('BH80')
+# for (exp in exclude){
+#   print(exp)
+#   data = subset(data, sub_exp != exp)
+# }
 
 
 all_exps = c('BH80','BWB70', 'DD74', 'GHR65', 'GHR65-p', 'Gr92', 'GT92', 'GT92-p', 'HS09', 
@@ -291,32 +291,33 @@ d = data.frame(exp = d0$sub_exp,
 )
 p <- ggplot(d, aes(exp, corr)) + geom_col() + ylim(c(-0.2, 1.8))
 p
-# ggsave(file = "corrs_NHID1.png", p)
+# ggsave(file = "corrs_NHID1.pdf", p)
 # 
 # exclude = d$exp[d$corr < 0.0]
 
 # p = plot_raw_logodds(data)
-# ggsave(file = paste("raw_logodds_NHID", setting, ".png", sep = ''), p)
+# ggsave(file = paste("raw_logodds_NHID", setting, ".pdf", sep = ''), p)
 
 
 if (type == 'prior'){
   p = plot_priorlogodds(data, N = 5)
   p
   # ggsave(file = paste("legend_", setting, ".pdf", sep = ''), p)
-  ggsave(file = paste("prior_NHID", setting, ".png", sep = ''), p)
+  ggsave(file = paste("prior_NHID", setting, ".pdf", sep = ''), p)
 } else {
   
   p = plot_logodds(data, N = 1)
   p
-  ggsave(file = paste("logodds_NHID", setting, ".png", sep = ''), p)
+  ggsave(file = paste("logodds_NHID", setting, ".pdf", sep = ''), p)
   
   p = plot_ss(data, N = 3)
   p
-  ggsave(file = paste("samplesize_NHID", setting, ".png", sep = ''), p)
+  # ggsave(file = paste("samplesize_NHID", setting, ".pdf", sep = ''), p)
+  ggsave(file = paste("legend_NHID", setting, ".pdf", sep = ''), p)
   
   p = plot_diag(data, N = 3)
   p
-  ggsave(file = paste("diagnosticity_NHID", setting, ".png", sep = ''), p)
+  ggsave(file = paste("diagnosticity_NHID", setting, ".pdf", sep = ''), p)
   
 }
 

@@ -287,7 +287,7 @@ class UrnRational():
 
         for x in data["X"]:
             count += 1                
-            draw, lik1, lik2, pri, N_ratio = x.numpy()
+            draw, lik1, lik2, pri, N_ratio, _ = x.numpy()
             N = N_ratio*self.N_t
             lik = np.array([lik1, lik2])
             preds.append(self.pred_post(draw, lik, pri, N))
@@ -310,7 +310,7 @@ class UrnRational():
         ljs = []
         
         for x in data["X"]:
-            draw, lik1, lik2, pri, N_ratio = x.numpy()
+            draw, lik1, lik2, pri, N_ratio, _ = x.numpy()
             N = N_ratio*self.N_t
             lik = np.array([lik1, lik2])
             pred = self.pred_post(draw, lik, pri, N)
