@@ -162,14 +162,14 @@ for part_number in np.arange(total_part):
   
   ID_all_hrms.append(ID_test_data['y_hrm'][:, 1])
   ID_all_ams.append(ID_test_data['y_am'][:, 1])
-  ID_all_priors.append(ID_test_data['X'][:, -2])
+  ID_all_priors.append(ID_test_data['X'][:, 3])
   lik_of_data = (ID_test_data['X'][:, 0]*ID_test_data['X'][:, 2]
                  + (1.0 - ID_test_data['X'][:, 0])*(1.0 - ID_test_data['X'][:, 2]))
   ID_all_liks.append(lik_of_data)
   
   UD_all_hrms.append(UD_test_data['y_hrm'][:, 1])
   UD_all_ams.append(UD_test_data['y_am'][:, 1])
-  UD_all_priors.append(UD_test_data['X'][:, -2])
+  UD_all_priors.append(UD_test_data['X'][:, 3])
   lik_of_data = (UD_test_data['X'][:, 0]*UD_test_data['X'][:, 2]
                  + (1.0 - UD_test_data['X'][:, 0])*(1.0 - UD_test_data['X'][:, 2]))
   UD_all_liks.append(lik_of_data)
@@ -217,16 +217,18 @@ UD_all_liks = np.reshape(np.array(UD_all_liks), (-1))
 
         
 
-plot_data = {'ID_ARs': ID_ARs,
-             'ID_priors': ID_all_priors, 
-             'ID_liks': ID_all_liks, 
-             'ID_ams': ID_all_ams, 
-             'ID_hrms': ID_all_hrms,              
-             'UD_priors': UD_all_priors, 
-             'UD_liks': UD_all_liks, 
-             'UD_ams': UD_all_ams, 
-             'UD_hrms': UD_all_hrms,              
-             'UD_ARs': UD_ARs}
+plot_data = {
+  #'ID_ARs': ID_ARs,
+  'ID_priors': ID_all_priors, 
+  'ID_liks': ID_all_liks, 
+  'ID_ams': ID_all_ams, 
+  'ID_hrms': ID_all_hrms,              
+  'UD_priors': UD_all_priors, 
+  'UD_liks': UD_all_liks, 
+  'UD_ams': UD_all_ams, 
+  'UD_hrms': UD_all_hrms,              
+  #'UD_ARs': UD_ARs
+}
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
         
