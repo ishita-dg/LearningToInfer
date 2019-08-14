@@ -25,6 +25,10 @@ ID_all_ams = []
 UD_all_hrms = []
 UD_all_ams = []
 
+ID_Xs = []
+UD_Xs = []
+
+
 for part_number in np.arange(total_part):
   print("Participant numpber ", part_number)
   # Modify in the future to read in / sysarg
@@ -160,7 +164,9 @@ for part_number in np.arange(total_part):
   UD_all_hrms.append(UD_test_data['y_hrm'][:, 0])
   UD_all_ams.append(UD_test_data['y_am'][:, 0])
   
-      
+  ID_Xs.append(ID_X.numpy())
+  UD_Xs.append(UD_X.numpy())
+  
     
     
 ID_all_hrms = np.reshape(np.array(ID_all_hrms), (-1))
@@ -168,6 +174,9 @@ ID_all_ams = np.reshape(np.array(ID_all_ams), (-1))
 
 UD_all_hrms = np.reshape(np.array(UD_all_hrms), (-1))
 UD_all_ams = np.reshape(np.array(UD_all_ams), (-1))
+
+ID_Xs = np.reshape(np.array(ID_Xs), (-1, 3))
+UD_Xs = np.reshape(np.array(UD_Xs), (-1, 3))
 
 
 # Plotting
@@ -225,6 +234,8 @@ plot_data = {'ID_ams': ID_all_ams,
              'x': bins + jump/2.0,
              'UD_means': np.array(UD_means),
              'ID_means': np.array(ID_means),
+             'ID_X': ID_Xs,
+             'UD_X': UD_Xs
              }
 
 utils.save_data(plot_data, name = storage_id + 'plot_data')
