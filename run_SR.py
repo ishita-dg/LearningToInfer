@@ -164,8 +164,8 @@ for part_number in np.arange(total_part):
   UD_all_hrms.append(UD_test_data['y_hrm'][:, 0])
   UD_all_ams.append(UD_test_data['y_am'][:, 0])
   
-  ID_Xs.append(ID_X.numpy())
-  UD_Xs.append(UD_X.numpy())
+  ID_Xs.append(ID_test_data['X'])
+  UD_Xs.append(ID_test_data['X'])
   
     
     
@@ -177,6 +177,28 @@ UD_all_ams = np.reshape(np.array(UD_all_ams), (-1))
 
 ID_Xs = np.reshape(np.array(ID_Xs), (-1, 3))
 UD_Xs = np.reshape(np.array(UD_Xs), (-1, 3))
+
+   
+#print("Plotting now")  
+  
+#ID_all_hrms0 = ID_all_hrms.copy()
+#UD_all_hrms0 = UD_all_hrms.copy()
+
+#ID_all_ams0 = ID_all_ams.copy()
+#UD_all_ams0 = UD_all_ams.copy()
+
+#ID_all_ams = ID_all_ams0 - ID_Xs[:, 1]
+#UD_all_ams = UD_all_ams0 - UD_Xs[:, 1]
+
+#ID_all_hrms = ID_all_hrms0 - ID_Xs[:, 1]
+#UD_all_hrms = UD_all_hrms0 - UD_Xs[:, 1]
+
+    
+#ID_all_ams = ID_all_ams0[1:] - ID_all_ams0[:-1]
+#UD_all_ams = UD_all_ams0[1:] - UD_all_ams0[:-1]
+
+#ID_all_hrms = ID_all_hrms0[1:] - ID_all_hrms0[:-1]
+#UD_all_hrms = UD_all_hrms0[1:] - UD_all_hrms0[:-1]
 
 
 # Plotting
